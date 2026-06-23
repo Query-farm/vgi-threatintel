@@ -129,7 +129,7 @@ func (c *Client) Reputation(ctx context.Context, indicator string) (*RepRow, err
 	if err != nil {
 		return nil, fmt.Errorf("reputation: request failed: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	body, err := io.ReadAll(io.LimitReader(resp.Body, 16<<20))
 	if err != nil {
