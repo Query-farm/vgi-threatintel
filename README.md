@@ -4,7 +4,9 @@
 
 <p align="center"><em>A <a href="https://query.farm">Query.Farm</a> VGI worker for DuckDB.</em></p>
 
-# vgi-threatintel
+# Enrich IPs, Domains & Hashes against Reputation Feeds in DuckDB
+
+> **vgi-threatintel** · a [Query.Farm](https://query.farm) VGI worker
 
 [![CI](https://github.com/Query-farm/vgi-threatintel/actions/workflows/ci.yml/badge.svg)](https://github.com/Query-farm/vgi-threatintel/actions/workflows/ci.yml)
 
