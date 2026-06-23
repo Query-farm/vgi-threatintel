@@ -1,3 +1,9 @@
+<p align="center">
+  <img src="docs/vgi-logo.png" alt="Vector Gateway Interface (VGI)" width="320">
+</p>
+
+<p align="center"><em>A <a href="https://query.farm">Query.Farm</a> VGI worker for DuckDB.</em></p>
+
 # vgi-threatintel
 
 [![CI](https://github.com/Query-farm/vgi-threatintel/actions/workflows/ci.yml/badge.svg)](https://github.com/Query-farm/vgi-threatintel/actions/workflows/ci.yml)
@@ -161,3 +167,12 @@ test/sql/                            haybarn SQL end-to-end tests
 
 The worker source is licensed under the **MIT License** — see [`LICENSE`](./LICENSE).
 The `vgi-go` SDK is MIT-licensed by Query Farm LLC.
+
+---
+
+## Authorship & License
+
+Written by [Query.Farm](https://query.farm) — every VGI worker is designed and built by Query.Farm.
+
+Copyright 2026 Query Farm LLC - https://query.farm
+
