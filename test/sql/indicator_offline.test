@@ -1,0 +1,92 @@
+# name: test/sql/indicator_offline.test
+# description: Offline indicator typing / triage scalars (no network / no mock)
+# group: [vgi_threatintel]
+
+require-env VGI_THREATINTEL_WORKER
+
+# haybarn-unittest does NOT autoload the extension for `require vgi` (it is
+# silently SKIPPED). Load it explicitly instead.
+statement ok
+LOAD vgi;
+
+statement ok
+ATTACH 'threatintel' AS threatintel (TYPE vgi, LOCATION '${VGI_THREATINTEL_WORKER}');
+
+# ---- indicator_type: every supported type ----
+
+query T
+SELECT threatintel.indicator_type('1.2.3.4');
+----
+ipv4
+
+query T
+SELECT threatintel.indicator_type('2001:4860:4860::8888');
+----
+ipv6
+
+query T
+SELECT threatintel.indicator_type('evil-domain.example');
+----
+domain
+
+query T
+SELECT threatintel.indicator_type('http://evil.com/payload.exe');
+----
+url
+
+query T
+SELECT threatintel.indicator_type('44d88612fea8a8f36de82e1278abb02f');
+----
+md5
+
+query T
+SELECT threatintel.indicator_type('da39a3ee5e6b4b0d3255bfef95601890afd80709');
+----
+sha1
+
+query T
+SELECT threatintel.indicator_type('44d88612fea8a8f36de82e1278abb02f44d88612fea8a8f36de82e1278abb02f');
+----
+sha256
+
+# An unrecognized indicator surfaces as SQL NULL.
+query I
+SELECT threatintel.indicator_type('not an indicator') IS NULL;
+----
+true
+
+# ---- is_private_ip: RFC1918 true, public false ----
+
+query I
+SELECT threatintel.is_private_ip('10.0.0.1');
+----
+true
+
+query I
+SELECT threatintel.is_private_ip('192.168.1.50');
+----
+true
+
+query I
+SELECT threatintel.is_private_ip('127.0.0.1');
+----
+true
+
+query I
+SELECT threatintel.is_private_ip('8.8.8.8');
+----
+false
+
+# A non-IP is never "private" (so a NOT is_private_ip gate is safe).
+query I
+SELECT threatintel.is_private_ip('evil-domain.example');
+----
+false
+
+# Compose the two scalars: type, then gate a would-be lookup on public IPs.
+query I
+SELECT count(*) FROM (VALUES ('10.0.0.1'), ('8.8.8.8'), ('evil-domain.example')) AS t(v)
+WHERE threatintel.indicator_type(v) IS NOT NULL
+  AND NOT threatintel.is_private_ip(v);
+----
+2

@@ -1,0 +1,118 @@
+# name: test/sql/reputation_api.test
+# description: reputation() table function against the local mock reputation feed
+# group: [vgi_threatintel]
+
+require-env VGI_THREATINTEL_WORKER
+
+require-env VGI_THREATINTEL_TEST_URL
+
+statement ok
+LOAD vgi;
+
+statement ok
+ATTACH 'threatintel' AS threatintel (TYPE vgi, LOCATION '${VGI_THREATINTEL_WORKER}');
+
+# ---- reputation(): a known-malicious indicator via the mock base_url ----
+
+query I
+SELECT count(*) FROM threatintel.reputation('185.220.101.1', base_url := '${VGI_THREATINTEL_TEST_URL}');
+----
+1
+
+query TTRT
+SELECT indicator, type, score, malicious
+FROM threatintel.reputation('185.220.101.1', base_url := '${VGI_THREATINTEL_TEST_URL}');
+----
+185.220.101.1	ipv4	91.5	true
+
+# The categories array unnests to one row per category.
+query T
+SELECT cat
+FROM threatintel.reputation('185.220.101.1', base_url := '${VGI_THREATINTEL_TEST_URL}'),
+     UNNEST(categories) AS u(cat)
+ORDER BY cat;
+----
+c2
+scanner
+tor-exit
+
+# ---- a known-clean indicator -> malicious false ----
+
+query TT
+SELECT malicious, type
+FROM threatintel.reputation('93.184.216.34', base_url := '${VGI_THREATINTEL_TEST_URL}');
+----
+false	ipv4
+
+# A malicious domain and file hash are also recognized.
+query TT
+SELECT type, malicious
+FROM threatintel.reputation('malware-c2.example', base_url := '${VGI_THREATINTEL_TEST_URL}');
+----
+domain	true
+
+query TT
+SELECT type, malicious
+FROM threatintel.reputation('44d88612fea8a8f36de82e1278abb02f44d88612fea8a8f36de82e1278abb02f', base_url := '${VGI_THREATINTEL_TEST_URL}');
+----
+sha256	true
+
+# ---- triage: a private IP is never looked up (zero rows, no error) ----
+
+query I
+SELECT count(*) FROM threatintel.reputation('10.0.0.1', base_url := '${VGI_THREATINTEL_TEST_URL}');
+----
+0
+
+# ---- an unsupported indicator string yields no rows (skipped, no error) ----
+
+query I
+SELECT count(*) FROM threatintel.reputation('not-an-indicator!!', base_url := '${VGI_THREATINTEL_TEST_URL}');
+----
+0
+
+# ---- an unknown but well-formed indicator (mock 404) yields no rows ----
+
+query I
+SELECT count(*) FROM threatintel.reputation('203.0.113.7', base_url := '${VGI_THREATINTEL_TEST_URL}');
+----
+0
+
+# ---- per-row enrichment pattern ----
+# DuckDB does NOT support LATERAL column parameters over a VGI table function
+# (it only accepts literal arguments), so the batch-enrichment pattern is:
+#   (1) offline-type + triage the column with the scalars to pick lookupable
+#       rows, then
+#   (2) call reputation('<literal>', ...) per distinct indicator (one statement
+#       per value, or driven from the host application in a loop) and UNION the
+#       verdicts.
+# Step (1) is fully expressible in SQL and shown here; it shortlists exactly the
+# indicators worth a network lookup.
+
+statement ok
+CREATE TEMP TABLE iocs(value VARCHAR);
+
+statement ok
+INSERT INTO iocs VALUES ('185.220.101.1'), ('malware-c2.example'), ('10.0.0.1'), ('not-an-indicator!!'), ('93.184.216.34');
+
+# Triage: keep only typed, public indicators worth a reputation lookup.
+query I
+SELECT count(*) FROM iocs
+WHERE threatintel.indicator_type(value) IS NOT NULL
+  AND NOT threatintel.is_private_ip(value);
+----
+3
+
+# Per-indicator lookups composed with UNION ALL (literal args, the supported
+# form): two of the shortlisted indicators are malicious.
+query I
+SELECT count(*) FROM (
+  SELECT malicious FROM threatintel.reputation('185.220.101.1', base_url := '${VGI_THREATINTEL_TEST_URL}')
+  UNION ALL
+  SELECT malicious FROM threatintel.reputation('malware-c2.example', base_url := '${VGI_THREATINTEL_TEST_URL}')
+  UNION ALL
+  SELECT malicious FROM threatintel.reputation('93.184.216.34', base_url := '${VGI_THREATINTEL_TEST_URL}')
+) v
+WHERE malicious;
+----
+2
