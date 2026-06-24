@@ -3,6 +3,8 @@
 package threatworker
 
 import (
+	"bytes"
+	"encoding/gob"
 	"net/http/httptest"
 	"testing"
 
@@ -69,8 +71,8 @@ func TestReputationFunction_Malicious(t *testing.T) {
 	if len(r.Categories) == 0 {
 		t.Errorf("Categories empty, want non-empty")
 	}
-	if st.Done {
-		t.Error("state should not be done before Process")
+	if st.Offset != 0 {
+		t.Error("state cursor should start at offset 0 before Process")
 	}
 }
 
@@ -155,6 +157,36 @@ func TestReputationFunction_NullArgNoRows(t *testing.T) {
 	if len(st.Rows) != 0 {
 		t.Errorf("NULL arg should yield no rows, got %d", len(st.Rows))
 	}
+}
+
+// TestCursorSurvivesContinuation mirrors the HTTP transport: the per-scan state
+// is gob round-tripped between ticks, so the cursor offset must advance across
+// the boundary and eventually drain. A bare Done flag flipped after Emit would
+// re-emit row 0 forever; the explicit Offset terminates.
+func TestCursorSurvivesContinuation(t *testing.T) {
+	rows := make([]RepRow, rowsPerTick*2+5) // spans 3 ticks
+	st := &reputationState{Rows: rows}
+	emitted := 0
+	for tick := 0; tick < 100; tick++ {
+		var buf bytes.Buffer
+		if err := gob.NewEncoder(&buf).Encode(st); err != nil {
+			t.Fatalf("gob encode: %v", err)
+		}
+		var resumed reputationState
+		if err := gob.NewDecoder(&buf).Decode(&resumed); err != nil {
+			t.Fatalf("gob decode: %v", err)
+		}
+		st = &resumed
+		slice, done := cursorSlice(st.Rows, &st.Offset)
+		if done {
+			if emitted != len(rows) {
+				t.Fatalf("drained after emitting %d of %d rows", emitted, len(rows))
+			}
+			return
+		}
+		emitted += len(slice)
+	}
+	t.Fatal("cursor never drained — continuation loop did not terminate")
 }
 
 func TestRegisterDoesNotPanic(t *testing.T) {

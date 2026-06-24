@@ -30,9 +30,41 @@ const CatalogName = "threatintel"
 // function fetches its row eagerly in NewState, stores plain exported Go slices
 // plus a Done flag, and rebuilds the Arrow batch in Process.
 
-// emitState carries the "already emitted" flag for table functions.
-type emitState struct {
-	Done bool
+// WHY AN EXPLICIT CURSOR, NOT A bool Done (the HTTP-continuation fix):
+//
+// Over the HTTP transport the worker is STATELESS across exchanges — there is no
+// long-lived process holding the live state between Process ticks. The framework
+// round-trips the producer state through an opaque continuation token: after each
+// tick it gob-encodes the state (snapshotting the LIVE user state), the client
+// returns the token, and the worker resumes by gob-decoding it. The HTTP server
+// emits at most one data batch per response, so a producer with more to emit is
+// always resumed mid-stream from its token.
+//
+// The position MUST therefore live in the serialized state. A bare `Done bool`
+// flipped only AFTER the single Emit does not survive the continuation boundary:
+// the resumed tick observes the pre-Emit snapshot, re-emits the same rows, and
+// the scan never terminates (an infinite loop — subprocess/unix keep live state
+// in memory, so they were unaffected and hid the bug). Carrying an explicit
+// Offset that Process advances BEFORE yielding makes the snapshot authoritative.
+//
+// rowsPerTick bounds how many rows each Process tick emits, so the cursor is
+// observable across the continuation boundary. (reputation returns at most one
+// row, but the cursor is the correct general pattern and is HTTP-safe.)
+const rowsPerTick = 256
+
+// cursorSlice returns the next bounded slice of rows starting at *offset and
+// advances *offset past them, reporting done=true once all rows are consumed.
+func cursorSlice[T any](rows []T, offset *int) (slice []T, done bool) {
+	if *offset >= len(rows) {
+		return nil, true
+	}
+	end := *offset + rowsPerTick
+	if end > len(rows) {
+		end = len(rows)
+	}
+	slice = rows[*offset:end]
+	*offset = end
+	return slice, false
 }
 
 // ===========================================================================
@@ -161,10 +193,10 @@ type reputationArgs struct {
 }
 
 // reputationState holds the at-most-one fetched verdict (gob-encodable) plus the
-// emit flag.
+// cursor offset of the next unemitted row.
 type reputationState struct {
-	emitState
-	Rows []RepRow
+	Rows   []RepRow
+	Offset int
 }
 
 // ReputationFunction looks up one indicator against the reputation source.
@@ -221,11 +253,10 @@ func (f *ReputationFunction) NewState(params *vgi.ProcessParams) (*reputationSta
 }
 
 func (f *ReputationFunction) Process(_ context.Context, _ *vgi.ProcessParams, state *reputationState, out *vgirpc.OutputCollector) error {
-	if state.Done {
+	r, done := cursorSlice(state.Rows, &state.Offset)
+	if done {
 		return out.Finish()
 	}
-	state.Done = true
-	r := state.Rows
 	n := int64(len(r))
 	batch := array.NewRecordBatch(reputationSchema, []arrow.Array{
 		vgi.BuildStringArray(n, func(i int64) string { return r[i].Indicator }),
