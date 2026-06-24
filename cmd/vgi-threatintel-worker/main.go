@@ -41,7 +41,11 @@ func main() {
 		vgi.WithCatalogName(threatworker.CatalogName),
 		vgi.WithCatalogComment("Enrich cyber indicators against threat-intel reputation sources; classify offline"),
 		vgi.WithCatalogTags(map[string]string{
-			"source": "vgi-threatintel",
+			"source":    "vgi-threatintel",
+			"vgi.title": "Threat-Intel Indicator Enrichment",
+			"vgi.keywords": "threat intelligence, threat intel, indicators, ioc, ip, domain, url, " +
+				"file hash, reputation, malicious, enrichment, classification, soc, threat hunting, " +
+				"incident response, cyber, defensive security",
 			"vgi.description_llm": "Defensive threat-intelligence worker for cyber indicators (IoCs). " +
 				"Offline scalars classify an indicator string as ipv4/ipv6/domain/url/md5/sha1/sha256 " +
 				"(indicator_type) and flag private/reserved IPs that should not be looked up " +
@@ -69,11 +73,30 @@ func main() {
 		}),
 		vgi.WithSchemaTags(map[string]map[string]string{
 			"main": {
+				"vgi.title": "Threat-Intel — main",
+				"vgi.keywords": "threat intel, indicator, ioc, indicator_type, is_private_ip, " +
+					"reputation, classify, enrich, ip, domain, url, file hash, malicious, soc, " +
+					"threat hunting",
+				// VGI123 classifying tags MUST use BARE keys (not vgi.-namespaced).
+				"domain":   "security",
+				"category": "threat-intelligence",
+				"topic":    "indicator-enrichment",
+				"vgi.source_url": "https://github.com/Query-farm/vgi-threatintel/blob/main/" +
+					"internal/threatworker/functions.go",
 				"vgi.description_llm": "Threat-intel functions: classify an indicator's IoC type " +
 					"(indicator_type), flag private/reserved IPs (is_private_ip), and enrich one " +
 					"indicator against a reputation source (reputation table function).",
 				"vgi.description_md": "Threat-intel indicator classification and reputation-enrichment " +
 					"functions over Apache Arrow.",
+				// VGI506 representative example queries (a plain string; not executed).
+				// Includes a backend-qualified reputation lookup, which the offline
+				// linter run does not execute.
+				"vgi.example_queries": "SELECT threatintel.main.indicator_type('8.8.8.8');\n" +
+					"SELECT threatintel.main.is_private_ip('10.0.0.5');\n" +
+					"SELECT * FROM threatintel.main.reputation('1.2.3.4');\n" +
+					"SELECT malicious, score, categories FROM threatintel.main.reputation('evil.example.com', base_url := 'https://my-reputation-adapter.internal/reputation', api_key := 'YOUR_KEY');",
+				// VGI509: guaranteed-runnable executable examples (offline-safe).
+				"vgi.executable_examples": threatworker.ExecutableExamples,
 			},
 		}),
 	)

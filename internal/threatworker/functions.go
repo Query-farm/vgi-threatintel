@@ -96,6 +96,18 @@ func (f *IndicatorTypeFunction) Metadata() vgi.FunctionMetadata {
 				Description: "Classify a 32-hex-character file hash as 'md5'.",
 			},
 		},
+		Tags: objectTags(
+			"Classify Indicator Type",
+			"Classify a single cyber indicator (IoC) string into its type: ipv4, ipv6, "+
+				"domain, url, md5, sha1, or sha256. Returns NULL for an unrecognized or "+
+				"NULL input. Pure and offline (no network); use it to triage and route a "+
+				"column of indicators before spending reputation-API budget.",
+			"Classify an indicator string as `ipv4`/`ipv6`/`domain`/`url`/`md5`/`sha1`/"+
+				"`sha256`, or `NULL` if unrecognized. Offline and deterministic.",
+			"indicator type, ioc, classify, ipv4, ipv6, domain, url, hash, md5, sha1, "+
+				"sha256, triage, threat intel, threat hunting, soc",
+			"internal/threatworker/indicator.go",
+		),
 	}
 }
 
@@ -163,6 +175,19 @@ func (f *IsPrivateIPFunction) Metadata() vgi.FunctionMetadata {
 				Description: "A routable public address; returns false (safe to look up).",
 			},
 		},
+		Tags: objectTags(
+			"Is Private Reserved IP",
+			"Report whether an indicator is an IP literal in a private or reserved range "+
+				"(RFC1918, loopback, link-local, CGNAT, documentation/TEST-NET, multicast, "+
+				"IPv6 ULA, etc.). Returns false for any non-IP input. Pure and offline; "+
+				"gate a public reputation lookup on NOT is_private_ip(x) so internal hosts "+
+				"don't waste API budget.",
+			"Report whether an indicator is a private/reserved IP "+
+				"(RFC1918/loopback/CGNAT/TEST-NET/…); `false` for non-IPs. Offline.",
+			"private ip, reserved ip, rfc1918, loopback, link-local, cgnat, test-net, "+
+				"documentation range, internal host, triage, ip filter, threat intel, soc",
+			"internal/threatworker/indicator.go",
+		),
 	}
 }
 
@@ -232,16 +257,38 @@ func (f *ReputationFunction) Metadata() vgi.FunctionMetadata {
 		Stability:   vgi.StabilityVolatile,
 		Categories:  []string{"threatintel", "reputation"},
 		Examples: []vgi.CatalogExample{
+			// These examples are chosen to execute cleanly WITHOUT a live reputation
+			// backend: a private/reserved IP and an unsupported indicator are triaged
+			// to zero rows in NewState BEFORE any network call (the worker never
+			// spends lookup budget on internal hosts or non-indicators). A real,
+			// backend-qualified lookup (an external IP/domain/hash against a
+			// configured base_url) is documented in vgi.example_queries / columns_md.
 			{
-				SQL:         "SELECT * FROM threatintel.main.reputation('1.2.3.4');",
-				Description: "Look up an IP against the default reputation source; returns at most one verdict row (malicious flag, score, categories, source, last_seen).",
+				SQL:         "SELECT count(*) AS rows_for_private_ip FROM threatintel.main.reputation('10.0.0.5');",
+				Description: "A private/reserved IP is triaged to zero verdict rows before any network call (no public-reputation budget spent on internal hosts); count(*) returns 0.",
 			},
 			{
-				SQL:         "SELECT malicious, score, categories FROM threatintel.main.reputation('evil.example.com', api_key := 'YOUR_KEY');",
-				Description: "Look up a domain against a key-protected reputation source via the named api_key option.",
+				SQL:         "SELECT count(*) AS rows_for_unsupported FROM threatintel.main.reputation('not-an-indicator');",
+				Description: "An unsupported indicator string yields zero verdict rows (no lookup); count(*) returns 0.",
 			},
 		},
-		Tags: map[string]string{
+		Tags: mergeTags(objectTags(
+			"Indicator Reputation Lookup",
+			"Look up one cyber indicator (IP, domain, URL, or file hash) against a "+
+				"threat-intel reputation source and return at most one verdict row: "+
+				"indicator, type, malicious flag, score, categories, source, and "+
+				"last_seen. Private/reserved IPs and unsupported strings are triaged to "+
+				"zero rows before any network call; an unknown indicator (source 404) "+
+				"also yields zero rows. The source is a normalized reputation endpoint "+
+				"selected with the base_url option (api_key / timeout_ms also named).",
+			"Look up an indicator against a threat-intel reputation source; returns at "+
+				"most one verdict row (`malicious`, `score`, `categories`, `source`, "+
+				"`last_seen`). Configure the feed with `base_url` (+ `api_key`).",
+			"reputation, threat intel, ioc lookup, indicator enrichment, malicious, "+
+				"threat score, categories, ip reputation, domain reputation, url, file "+
+				"hash, otx, urlhaus, threatfox, virustotal, soc, threat hunting",
+			"internal/threatworker/functions.go",
+		), map[string]string{
 			"vgi.columns_md": "| column | type | description |\n" +
 				"|---|---|---|\n" +
 				"| `indicator` | VARCHAR | The looked-up indicator, echoed back. |\n" +
@@ -251,7 +298,7 @@ func (f *ReputationFunction) Metadata() vgi.FunctionMetadata {
 				"| `categories` | VARCHAR[] | Threat categories (e.g. `malware`, `phishing`, `c2`). |\n" +
 				"| `source` | VARCHAR | Name of the reputation feed that produced the verdict. |\n" +
 				"| `last_seen` | VARCHAR | When the source last observed the indicator (ISO-8601 string). |",
-		},
+		}),
 	}
 }
 
