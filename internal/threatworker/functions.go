@@ -86,6 +86,16 @@ func (f *IndicatorTypeFunction) Metadata() vgi.FunctionMetadata {
 		Stability:   vgi.StabilityConsistent,
 		ReturnType:  arrow.BinaryTypes.String,
 		Categories:  []string{"threatintel", "ioc"},
+		Examples: []vgi.CatalogExample{
+			{
+				SQL:         "SELECT threatintel.main.indicator_type('8.8.8.8');",
+				Description: "Classify an IPv4 address; returns 'ipv4'.",
+			},
+			{
+				SQL:         "SELECT threatintel.main.indicator_type('44d88612fea8a8f36de82e1278abb02f');",
+				Description: "Classify a 32-hex-character file hash as 'md5'.",
+			},
+		},
 	}
 }
 
@@ -143,6 +153,16 @@ func (f *IsPrivateIPFunction) Metadata() vgi.FunctionMetadata {
 		Stability:   vgi.StabilityConsistent,
 		ReturnType:  arrow.FixedWidthTypes.Boolean,
 		Categories:  []string{"threatintel", "ioc"},
+		Examples: []vgi.CatalogExample{
+			{
+				SQL:         "SELECT threatintel.main.is_private_ip('10.0.0.5');",
+				Description: "An RFC1918 address is private; returns true.",
+			},
+			{
+				SQL:         "SELECT threatintel.main.is_private_ip('8.8.8.8');",
+				Description: "A routable public address; returns false (safe to look up).",
+			},
+		},
 	}
 }
 
@@ -211,6 +231,27 @@ func (f *ReputationFunction) Metadata() vgi.FunctionMetadata {
 		Description: "Look up one indicator against a threat-intel reputation source; returns at most one verdict row",
 		Stability:   vgi.StabilityVolatile,
 		Categories:  []string{"threatintel", "reputation"},
+		Examples: []vgi.CatalogExample{
+			{
+				SQL:         "SELECT * FROM threatintel.main.reputation('1.2.3.4');",
+				Description: "Look up an IP against the default reputation source; returns at most one verdict row (malicious flag, score, categories, source, last_seen).",
+			},
+			{
+				SQL:         "SELECT malicious, score, categories FROM threatintel.main.reputation('evil.example.com', api_key := 'YOUR_KEY');",
+				Description: "Look up a domain against a key-protected reputation source via the named api_key option.",
+			},
+		},
+		Tags: map[string]string{
+			"vgi.columns_md": "| column | type | description |\n" +
+				"|---|---|---|\n" +
+				"| `indicator` | VARCHAR | The looked-up indicator, echoed back. |\n" +
+				"| `type` | VARCHAR | IoC type as reported by the source (ipv4/ipv6/domain/url/md5/sha1/sha256). |\n" +
+				"| `malicious` | BOOLEAN | Whether the source classifies the indicator as malicious. |\n" +
+				"| `score` | DOUBLE | Reputation/threat score, or NULL when the source reports none. |\n" +
+				"| `categories` | VARCHAR[] | Threat categories (e.g. `malware`, `phishing`, `c2`). |\n" +
+				"| `source` | VARCHAR | Name of the reputation feed that produced the verdict. |\n" +
+				"| `last_seen` | VARCHAR | When the source last observed the indicator (ISO-8601 string). |",
+		},
 	}
 }
 

@@ -36,11 +36,45 @@ func main() {
 		log.Fatalf("logging flags: %v", err)
 	}
 
+	sourceURL := "https://github.com/Query-farm/vgi-threatintel"
 	w := vgi.NewWorker(
 		vgi.WithCatalogName(threatworker.CatalogName),
 		vgi.WithCatalogComment("Enrich cyber indicators against threat-intel reputation sources; classify offline"),
 		vgi.WithCatalogTags(map[string]string{
 			"source": "vgi-threatintel",
+			"vgi.description_llm": "Defensive threat-intelligence worker for cyber indicators (IoCs). " +
+				"Offline scalars classify an indicator string as ipv4/ipv6/domain/url/md5/sha1/sha256 " +
+				"(indicator_type) and flag private/reserved IPs that should not be looked up " +
+				"(is_private_ip); the reputation table function enriches one indicator against a " +
+				"threat-intel reputation source, returning at most one verdict row with a malicious " +
+				"flag, score, categories, source, and last_seen. Use to triage and enrich IPs, " +
+				"domains, URLs, and file hashes in SQL during SOC / threat-hunting work (AUTHORIZED use only).",
+			"vgi.description_md": "# threatintel\n\n" +
+				"Enrich and classify cyber indicators (IPs, domains, URLs, file hashes) against a " +
+				"threat-intel reputation source, exposed as DuckDB SQL functions. Defensive " +
+				"SOC / threat-hunting tool for AUTHORIZED use.\n\n" +
+				"Scalars: `indicator_type`, `is_private_ip`. Table: `reputation`.",
+			"vgi.author":             "Query.Farm",
+			"vgi.copyright":          "Copyright 2026 Query Farm LLC - https://query.farm",
+			"vgi.license":            "MIT",
+			"vgi.support_contact":    "https://github.com/Query-farm/vgi-threatintel/issues",
+			"vgi.support_policy_url": "https://github.com/Query-farm/vgi-threatintel/blob/main/README.md",
+		}),
+		vgi.WithCatalogInfo(vgi.CatalogInfo{
+			Name:      threatworker.CatalogName,
+			SourceURL: &sourceURL,
+		}),
+		vgi.WithSchemaComments(map[string]string{
+			"main": "Threat-intel indicator classification and reputation-enrichment functions.",
+		}),
+		vgi.WithSchemaTags(map[string]map[string]string{
+			"main": {
+				"vgi.description_llm": "Threat-intel functions: classify an indicator's IoC type " +
+					"(indicator_type), flag private/reserved IPs (is_private_ip), and enrich one " +
+					"indicator against a reputation source (reputation table function).",
+				"vgi.description_md": "Threat-intel indicator classification and reputation-enrichment " +
+					"functions over Apache Arrow.",
+			},
 		}),
 	)
 	threatworker.Register(w)
