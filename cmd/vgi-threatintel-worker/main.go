@@ -46,14 +46,14 @@ func main() {
 			"vgi.keywords": "threat intelligence, threat intel, indicators, ioc, ip, domain, url, " +
 				"file hash, reputation, malicious, enrichment, classification, soc, threat hunting, " +
 				"incident response, cyber, defensive security",
-			"vgi.description_llm": "Defensive threat-intelligence worker for cyber indicators (IoCs). " +
+			"vgi.doc_llm": "Defensive threat-intelligence worker for cyber indicators (IoCs). " +
 				"Offline scalars classify an indicator string as ipv4/ipv6/domain/url/md5/sha1/sha256 " +
 				"(indicator_type) and flag private/reserved IPs that should not be looked up " +
 				"(is_private_ip); the reputation table function enriches one indicator against a " +
 				"threat-intel reputation source, returning at most one verdict row with a malicious " +
 				"flag, score, categories, source, and last_seen. Use to triage and enrich IPs, " +
 				"domains, URLs, and file hashes in SQL during SOC / threat-hunting work (AUTHORIZED use only).",
-			"vgi.description_md": "# threatintel\n\n" +
+			"vgi.doc_md": "# threatintel\n\n" +
 				"Enrich and classify cyber indicators (IPs, domains, URLs, file hashes) against a " +
 				"threat-intel reputation source, exposed as DuckDB SQL functions. Defensive " +
 				"SOC / threat-hunting tool for AUTHORIZED use.\n\n" +
@@ -83,10 +83,10 @@ func main() {
 				"topic":    "indicator-enrichment",
 				"vgi.source_url": "https://github.com/Query-farm/vgi-threatintel/blob/main/" +
 					"internal/threatworker/functions.go",
-				"vgi.description_llm": "Threat-intel functions: classify an indicator's IoC type " +
+				"vgi.doc_llm": "Threat-intel functions: classify an indicator's IoC type " +
 					"(indicator_type), flag private/reserved IPs (is_private_ip), and enrich one " +
 					"indicator against a reputation source (reputation table function).",
-				"vgi.description_md": "Threat-intel indicator classification and reputation-enrichment " +
+				"vgi.doc_md": "Threat-intel indicator classification and reputation-enrichment " +
 					"functions over Apache Arrow.",
 				// VGI506 representative example queries (a plain string; not executed).
 				// Includes a backend-qualified reputation lookup, which the offline

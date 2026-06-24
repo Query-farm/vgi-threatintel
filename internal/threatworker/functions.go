@@ -289,7 +289,7 @@ func (f *ReputationFunction) Metadata() vgi.FunctionMetadata {
 				"hash, otx, urlhaus, threatfox, virustotal, soc, threat hunting",
 			"internal/threatworker/functions.go",
 		), map[string]string{
-			"vgi.columns_md": "| column | type | description |\n" +
+			"vgi.result_columns_md": "| column | type | description |\n" +
 				"|---|---|---|\n" +
 				"| `indicator` | VARCHAR | The looked-up indicator, echoed back. |\n" +
 				"| `type` | VARCHAR | IoC type as reported by the source (ipv4/ipv6/domain/url/md5/sha1/sha256). |\n" +
