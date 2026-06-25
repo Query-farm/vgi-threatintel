@@ -43,9 +43,10 @@ func main() {
 		vgi.WithCatalogTags(map[string]string{
 			"source":    "vgi-threatintel",
 			"vgi.title": "Threat-Intel Indicator Enrichment",
-			"vgi.keywords": "threat intelligence, threat intel, indicators, ioc, ip, domain, url, " +
-				"file hash, reputation, malicious, enrichment, classification, soc, threat hunting, " +
-				"incident response, cyber, defensive security",
+			"vgi.keywords": `["threat intelligence","threat intel","indicators","ioc","ip",` +
+				`"domain","url","file hash","reputation","malicious","enrichment",` +
+				`"classification","soc","threat hunting","incident response","cyber",` +
+				`"defensive security"]`,
 			"vgi.doc_llm": "Defensive threat-intelligence worker for cyber indicators (IoCs). " +
 				"Offline scalars classify an indicator string as ipv4/ipv6/domain/url/md5/sha1/sha256 " +
 				"(indicator_type) and flag private/reserved IPs that should not be looked up " +
@@ -55,9 +56,19 @@ func main() {
 				"domains, URLs, and file hashes in SQL during SOC / threat-hunting work (AUTHORIZED use only).",
 			"vgi.doc_md": "# threatintel\n\n" +
 				"Enrich and classify cyber indicators (IPs, domains, URLs, file hashes) against a " +
-				"threat-intel reputation source, exposed as DuckDB SQL functions. Defensive " +
+				"threat-intel reputation source, exposed as DuckDB SQL functions. A defensive " +
 				"SOC / threat-hunting tool for AUTHORIZED use.\n\n" +
-				"Scalars: `indicator_type`, `is_private_ip`. Table: `reputation`.",
+				"Two offline scalars triage indicators with no network call: `indicator_type` " +
+				"classifies a string as ipv4/ipv6/domain/url/md5/sha1/sha256 (or NULL), and " +
+				"`is_private_ip` flags private/reserved IPs that should not be looked up. The " +
+				"`reputation` table function then enriches a single indicator against a " +
+				"normalized reputation endpoint (selected with `base_url`, plus `api_key` and " +
+				"`timeout_ms`), returning at most one verdict row with the malicious flag, score, " +
+				"categories, source, and last_seen.\n\n" +
+				"Typical use: triage a column of indicators with the scalars first, then look up " +
+				"the survivors with `reputation`. The worker hard-codes no feed — point it at any " +
+				"adapter that speaks the normalized reputation JSON (OTX, URLhaus, ThreatFox, " +
+				"VirusTotal, etc.).",
 			"vgi.author":             "Query.Farm",
 			"vgi.copyright":          "Copyright 2026 Query Farm LLC - https://query.farm",
 			"vgi.license":            "MIT",
@@ -74,20 +85,23 @@ func main() {
 		vgi.WithSchemaTags(map[string]map[string]string{
 			"main": {
 				"vgi.title": "Threat-Intel — main",
-				"vgi.keywords": "threat intel, indicator, ioc, indicator_type, is_private_ip, " +
-					"reputation, classify, enrich, ip, domain, url, file hash, malicious, soc, " +
-					"threat hunting",
+				"vgi.keywords": `["threat intel","indicator","ioc","indicator_type",` +
+					`"is_private_ip","reputation","classify","enrich","ip","domain","url",` +
+					`"file hash","malicious","soc","threat hunting"]`,
 				// VGI123 classifying tags MUST use BARE keys (not vgi.-namespaced).
 				"domain":   "security",
 				"category": "threat-intelligence",
 				"topic":    "indicator-enrichment",
-				"vgi.source_url": "https://github.com/Query-farm/vgi-threatintel/blob/main/" +
-					"internal/threatworker/functions.go",
+				// Per-object vgi.source_url omitted (VGI139): provenance is
+				// catalog-level only (set via WithCatalogInfo SourceURL).
 				"vgi.doc_llm": "Threat-intel functions: classify an indicator's IoC type " +
 					"(indicator_type), flag private/reserved IPs (is_private_ip), and enrich one " +
 					"indicator against a reputation source (reputation table function).",
 				"vgi.doc_md": "Threat-intel indicator classification and reputation-enrichment " +
-					"functions over Apache Arrow.",
+					"functions over Apache Arrow. Contains the offline triage scalars " +
+					"`indicator_type` (classify an IoC string) and `is_private_ip` (flag " +
+					"private/reserved IPs), and the `reputation` table function that enriches a " +
+					"single indicator against a normalized threat-intel reputation source.",
 				// VGI506 representative example queries (a plain string; not executed).
 				// Includes a backend-qualified reputation lookup, which the offline
 				// linter run does not execute.

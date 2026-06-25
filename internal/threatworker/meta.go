@@ -2,26 +2,26 @@
 
 package threatworker
 
+import "encoding/json"
+
 // Shared helpers for the per-object discovery/description metadata that the
-// vgi-lint strict profile (0.23.0) expects on EVERY function and table. Each
+// vgi-lint strict profile expects on EVERY function and table. Each
 // function/table surfaces these in its FunctionMetadata.Tags:
 //
 //   - vgi.title (VGI124)           — human-friendly display name
 //   - vgi.doc_llm (VGI112)         — Markdown narrative aimed at LLMs/agents
 //   - vgi.doc_md (VGI113)          — Markdown narrative for human docs
-//   - vgi.keywords (VGI126)        — comma-separated search terms/synonyms
-//   - vgi.source_url (VGI128)      — link to the implementing source file
+//   - vgi.keywords (VGI126/VGI138) — search terms/synonyms as a JSON array
 //
-// sourceURL(file) builds the canonical GitHub blob URL (pinned to main) so every
-// object points at exactly where it is implemented.
+// Per-object vgi.source_url is intentionally NOT set here: provenance lives only
+// on the catalog object (VGI139 — per-object source links are redundant).
 
-// sourceBase is the GitHub blob base for source files in this repo (pinned main).
-const sourceBase = "https://github.com/Query-farm/vgi-threatintel/blob/main"
-
-// sourceURL builds the implementation vgi.source_url for a repo-relative path,
-// e.g. sourceURL("internal/threatworker/indicator.go").
-func sourceURL(relativePath string) string {
-	return sourceBase + "/" + relativePath
+// keywordsJSON serializes a list of keyword strings into the JSON-array form
+// that vgi.keywords requires (VGI138), e.g. ["ipv4","domain"]. The encoding of a
+// plain []string never fails, so the error is dropped.
+func keywordsJSON(keywords []string) string {
+	b, _ := json.Marshal(keywords)
+	return string(b)
 }
 
 // mergeTags returns base with every key/value from extra added (extra wins on a
@@ -66,15 +66,16 @@ const ExecutableExamples = `[
   }
 ]`
 
-// objectTags builds the five standard per-object discovery/description tags for a
-// function or table. relativePath is the implementing file relative to the repo
-// root. Callers may add more entries to the returned map.
-func objectTags(title, descriptionLLM, descriptionMD, keywords, relativePath string) map[string]string {
+// objectTags builds the standard per-object discovery/description tags for a
+// function or table. keywords is a list of search terms/synonyms, serialized to
+// the JSON-array form vgi.keywords requires (VGI138). Per-object vgi.source_url
+// is deliberately omitted: provenance is catalog-level only (VGI139). Callers
+// may add more entries to the returned map.
+func objectTags(title, descriptionLLM, descriptionMD string, keywords []string) map[string]string {
 	return map[string]string{
-		"vgi.title":      title,
-		"vgi.doc_llm":    descriptionLLM,
-		"vgi.doc_md":     descriptionMD,
-		"vgi.keywords":   keywords,
-		"vgi.source_url": sourceURL(relativePath),
+		"vgi.title":    title,
+		"vgi.doc_llm":  descriptionLLM,
+		"vgi.doc_md":   descriptionMD,
+		"vgi.keywords": keywordsJSON(keywords),
 	}
 }
