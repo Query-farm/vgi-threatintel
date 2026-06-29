@@ -54,21 +54,43 @@ func main() {
 				"threat-intel reputation source, returning at most one verdict row with a malicious " +
 				"flag, score, categories, source, and last_seen. Use to triage and enrich IPs, " +
 				"domains, URLs, and file hashes in SQL during SOC / threat-hunting work (AUTHORIZED use only).",
-			"vgi.doc_md": "# threatintel\n\n" +
-				"Enrich and classify cyber indicators (IPs, domains, URLs, file hashes) against a " +
-				"threat-intel reputation source, exposed as DuckDB SQL functions. A defensive " +
-				"SOC / threat-hunting tool for AUTHORIZED use.\n\n" +
-				"Two offline scalars triage indicators with no network call: `indicator_type` " +
-				"classifies a string as ipv4/ipv6/domain/url/md5/sha1/sha256 (or NULL), and " +
-				"`is_private_ip` flags private/reserved IPs that should not be looked up. The " +
-				"`reputation` table function then enriches a single indicator against a " +
-				"normalized reputation endpoint (selected with `base_url`, plus `api_key` and " +
-				"`timeout_ms`), returning at most one verdict row with the malicious flag, score, " +
-				"categories, source, and last_seen.\n\n" +
-				"Typical use: triage a column of indicators with the scalars first, then look up " +
-				"the survivors with `reputation`. The worker hard-codes no feed — point it at any " +
-				"adapter that speaks the normalized reputation JSON (OTX, URLhaus, ThreatFox, " +
-				"VirusTotal, etc.).",
+			"vgi.doc_md": "# Threat-Intel Indicator Enrichment\n\n" +
+				"**Enrich and classify cyber threat indicators — IPs, domains, URLs, and file " +
+				"hashes — against threat-intelligence reputation feeds directly in SQL.** This VGI " +
+				"worker turns DuckDB into a threat-hunting and indicator-of-compromise (IoC) triage " +
+				"engine: parse and type any indicator offline, screen out private/reserved IPs, then " +
+				"look up reputation verdicts (malicious flag, score, categories, source) from a " +
+				"pluggable feed — all without leaving your query.\n\n" +
+				"It is built for SOC analysts, threat hunters, incident responders, and detection " +
+				"engineers who want to enrich and prioritize indicators in place rather than juggling " +
+				"separate enrichment scripts and spreadsheets. The worker is a **defensive** security " +
+				"tool intended for **authorized use only**, and it composes with sibling VGI workers " +
+				"such as `vgi-ioc`, `vgi-cve`, `vgi-yara`, and `vgi-sigma` to build a full SQL-native " +
+				"threat-intelligence stack.\n\n" +
+				"Under the hood the worker is a standalone process that [DuckDB](https://duckdb.org) " +
+				"attaches over Apache Arrow via the [vgi-go SDK](https://github.com/Query-farm/vgi-go). " +
+				"It deliberately hard-codes no single feed: it speaks a simple **normalized reputation " +
+				"JSON** over `GET {base_url}?indicator=<value>`, so you point it at any adapter that " +
+				"maps a provider's response into that shape. Popular feeds plug in behind this one " +
+				"interface, including [AlienVault OTX](https://otx.alienvault.com/api), " +
+				"[abuse.ch URLhaus](https://urlhaus-api.abuse.ch/), " +
+				"[abuse.ch ThreatFox](https://threatfox.abuse.ch/api/), and " +
+				"[VirusTotal](https://docs.virustotal.com/) — each with its own API key, rate limits, " +
+				"and terms of use.\n\n" +
+				"## SQL functions\n\n" +
+				"Two offline scalars triage indicators with **no network call**: `indicator_type` " +
+				"classifies a string as `ipv4`/`ipv6`/`domain`/`url`/`md5`/`sha1`/`sha256` (or NULL " +
+				"when unrecognized), and `is_private_ip` flags private/reserved IP addresses that " +
+				"should never be sent to an external feed. The `reputation` table function then " +
+				"enriches a single indicator against the configured source — selected with `base_url` " +
+				"plus optional `api_key` and `timeout_ms` — and returns at most one verdict row with " +
+				"the `malicious` flag, `score`, `categories`, `source`, and `last_seen`.\n\n" +
+				"A typical workflow triages a whole column of indicators with the scalars first " +
+				"(`SELECT indicator_type(ind), is_private_ip(ind) FROM events`), then looks up only " +
+				"the survivors with `reputation('1.2.3.4')`. Private/reserved IPs and unknown " +
+				"indicators return zero rows with no error, so enrichment stays cheap and safe. See " +
+				"the [vgi-threatintel source repository](https://github.com/Query-farm/vgi-threatintel) " +
+				"for adapter examples and the full normalized-feed contract.",
 			"vgi.author":             "Query.Farm",
 			"vgi.copyright":          "Copyright 2026 Query Farm LLC - https://query.farm",
 			"vgi.license":            "MIT",
