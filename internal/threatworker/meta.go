@@ -68,14 +68,16 @@ const ExecutableExamples = `[
 
 // objectTags builds the standard per-object discovery/description tags for a
 // function or table. keywords is a list of search terms/synonyms, serialized to
-// the JSON-array form vgi.keywords requires (VGI138). Per-object vgi.source_url
-// is deliberately omitted: provenance is catalog-level only (VGI139). Callers
-// may add more entries to the returned map.
-func objectTags(title, descriptionLLM, descriptionMD string, keywords []string) map[string]string {
+// the JSON-array form vgi.keywords requires (VGI138). category (VGI413) must
+// name one of the schema's vgi.categories registry entries. Per-object
+// vgi.source_url is deliberately omitted: provenance is catalog-level only
+// (VGI139). Callers may add more entries to the returned map.
+func objectTags(title, descriptionLLM, descriptionMD, category string, keywords []string) map[string]string {
 	return map[string]string{
 		"vgi.title":    title,
 		"vgi.doc_llm":  descriptionLLM,
 		"vgi.doc_md":   descriptionMD,
+		"vgi.category": category,
 		"vgi.keywords": keywordsJSON(keywords),
 	}
 }

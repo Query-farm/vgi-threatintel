@@ -104,6 +104,7 @@ func (f *IndicatorTypeFunction) Metadata() vgi.FunctionMetadata {
 				"column of indicators before spending reputation-API budget.",
 			"Classify an indicator string as `ipv4`/`ipv6`/`domain`/`url`/`md5`/`sha1`/"+
 				"`sha256`, or `NULL` if unrecognized. Offline and deterministic.",
+			"Offline Triage",
 			[]string{
 				"indicator type", "ioc", "classify", "ipv4", "ipv6", "domain", "url",
 				"hash", "md5", "sha1", "sha256", "triage", "threat intel",
@@ -186,6 +187,7 @@ func (f *IsPrivateIPFunction) Metadata() vgi.FunctionMetadata {
 				"don't waste API budget.",
 			"Report whether an indicator is a private/reserved IP "+
 				"(RFC1918/loopback/CGNAT/TEST-NET/…); `false` for non-IPs. Offline.",
+			"Offline Triage",
 			[]string{
 				"private ip", "reserved ip", "rfc1918", "loopback", "link-local",
 				"cgnat", "test-net", "documentation range", "internal host",
@@ -288,6 +290,7 @@ func (f *ReputationFunction) Metadata() vgi.FunctionMetadata {
 			"Look up an indicator against a threat-intel reputation source; returns at "+
 				"most one verdict row (`malicious`, `score`, `categories`, `source`, "+
 				"`last_seen`). Configure the feed with `base_url` (+ `api_key`).",
+			"Reputation Enrichment",
 			[]string{
 				"reputation", "threat intel", "ioc lookup", "indicator enrichment",
 				"malicious", "threat score", "categories", "ip reputation",

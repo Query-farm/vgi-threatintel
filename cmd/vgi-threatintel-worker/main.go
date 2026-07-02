@@ -47,6 +47,33 @@ func main() {
 				`"domain","url","file hash","reputation","malicious","enrichment",` +
 				`"classification","soc","threat hunting","incident response","cyber",` +
 				`"defensive security"]`,
+			// VGI152: agent test suite (simulate). Every reference_sql uses the
+			// OFFLINE, deterministic path only — the classification scalars and
+			// the reputation triage that returns zero rows for private/reserved
+			// IPs and unsupported strings BEFORE any network call — so the suite
+			// grades reproducibly with no live reputation backend.
+			"vgi.agent_test_tasks": `[` +
+				`{"name":"type_an_ipv4_indicator",` +
+				`"prompt":"What indicator type does the string 8.8.8.8 classify as?",` +
+				`"reference_sql":"SELECT threatintel.main.indicator_type('8.8.8.8') AS kind;",` +
+				`"ignore_column_names":true},` +
+				`{"name":"type_a_sha256_hash",` +
+				`"prompt":"Classify the indicator e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 into its indicator type.",` +
+				`"reference_sql":"SELECT threatintel.main.indicator_type('e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855') AS kind;",` +
+				`"ignore_column_names":true},` +
+				`{"name":"is_private_rfc1918_ip",` +
+				`"prompt":"Is the IP address 10.0.0.5 a private or reserved address that should not be sent to an external reputation feed?",` +
+				`"reference_sql":"SELECT threatintel.main.is_private_ip('10.0.0.5') AS private;",` +
+				`"ignore_column_names":true},` +
+				`{"name":"public_ip_is_not_private",` +
+				`"prompt":"Is the IP address 8.8.8.8 a private or reserved address?",` +
+				`"reference_sql":"SELECT threatintel.main.is_private_ip('8.8.8.8') AS private;",` +
+				`"ignore_column_names":true},` +
+				`{"name":"private_ip_yields_zero_reputation_rows",` +
+				`"prompt":"How many reputation rows are returned for the private IP address 10.0.0.5 (which is triaged out before any lookup)?",` +
+				`"reference_sql":"SELECT count(*) AS n FROM threatintel.main.reputation('10.0.0.5');",` +
+				`"ignore_column_names":true}` +
+				`]`,
 			"vgi.doc_llm": "Defensive threat-intelligence worker for cyber indicators (IoCs). " +
 				"Offline scalars classify an indicator string as ipv4/ipv6/domain/url/md5/sha1/sha256 " +
 				"(indicator_type) and flag private/reserved IPs that should not be looked up " +
@@ -85,9 +112,12 @@ func main() {
 				"enriches a single indicator against the configured source — selected with `base_url` " +
 				"plus optional `api_key` and `timeout_ms` — and returns at most one verdict row with " +
 				"the `malicious` flag, `score`, `categories`, `source`, and `last_seen`.\n\n" +
-				"A typical workflow triages a whole column of indicators with the scalars first " +
-				"(`SELECT indicator_type(ind), is_private_ip(ind) FROM events`), then looks up only " +
-				"the survivors with `reputation('1.2.3.4')`. Private/reserved IPs and unknown " +
+				"A typical workflow triages a whole column of indicators with the scalars first, " +
+				"then looks up only the survivors:\n\n" +
+				"```sql\n" +
+				"SELECT indicator_type(ind), is_private_ip(ind) FROM events;\n" +
+				"```\n\n" +
+				"Enrich the survivors with `reputation('1.2.3.4')`. Private/reserved IPs and unknown " +
 				"indicators return zero rows with no error, so enrichment stays cheap and safe. See " +
 				"the [vgi-threatintel source repository](https://github.com/Query-farm/vgi-threatintel) " +
 				"for adapter examples and the full normalized-feed contract.",
@@ -114,16 +144,31 @@ func main() {
 				"domain":   "security",
 				"category": "threat-intelligence",
 				"topic":    "indicator-enrichment",
+				// VGI413: ordered category registry; each function carries a
+				// matching vgi.category tag naming one of these.
+				"vgi.categories": `[` +
+					`{"name":"Offline Triage","description":"Pure, offline indicator classification and screening — type an IoC string and flag private/reserved IPs — with no network access, to route and prioritize indicators before spending reputation-API budget."},` +
+					`{"name":"Reputation Enrichment","description":"Live lookups of a single indicator against a normalized threat-intel reputation source, returning a verdict row with a malicious flag, score, categories, source, and last_seen."}` +
+					`]`,
 				// Per-object vgi.source_url omitted (VGI139): provenance is
 				// catalog-level only (set via WithCatalogInfo SourceURL).
 				"vgi.doc_llm": "Threat-intel functions: classify an indicator's IoC type " +
 					"(indicator_type), flag private/reserved IPs (is_private_ip), and enrich one " +
 					"indicator against a reputation source (reputation table function).",
-				"vgi.doc_md": "Threat-intel indicator classification and reputation-enrichment " +
-					"functions over Apache Arrow. Contains the offline triage scalars " +
-					"`indicator_type` (classify an IoC string) and `is_private_ip` (flag " +
-					"private/reserved IPs), and the `reputation` table function that enriches a " +
-					"single indicator against a normalized threat-intel reputation source.",
+				"vgi.doc_md": "## `threatintel.main`\n\n" +
+					"The single schema of the **threatintel** worker. It groups two " +
+					"complementary capability families for working with cyber indicators " +
+					"(IoCs) directly in SQL:\n\n" +
+					"- **Offline triage** — pure, deterministic scalars that run with no " +
+					"network access: classify an indicator string into its type and screen out " +
+					"private/reserved IP addresses that should never be sent to an external feed.\n" +
+					"- **Reputation enrichment** — a table function that looks up a single " +
+					"indicator against a normalized threat-intel reputation source and returns a " +
+					"verdict row (malicious flag, score, categories, source, last_seen).\n\n" +
+					"The usual pattern is to triage a whole column of indicators with the " +
+					"offline scalars first, then enrich only the survivors so lookups stay " +
+					"cheap and safe. List the schema to discover the individual functions and " +
+					"their arguments.",
 				// VGI506 representative example queries (a plain string; not executed).
 				// Includes a backend-qualified reputation lookup, which the offline
 				// linter run does not execute.
