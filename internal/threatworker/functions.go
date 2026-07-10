@@ -116,7 +116,14 @@ func (f *IndicatorTypeFunction) Metadata() vgi.FunctionMetadata {
 
 func (f *IndicatorTypeFunction) ArgumentSpecs() []vgi.ArgSpec {
 	return []vgi.ArgSpec{
-		{Name: "value", Position: 0, ArrowType: "varchar", Doc: "Indicator string (IP, domain, URL, or hash)"},
+		// NOTE (VGI317): the accepted input is an OPEN set — any free-form
+		// observable string — so we describe the KINDS of observable with a
+		// slash-delimited phrase rather than a comma "…, or …" enumeration
+		// that would (correctly) be read as a fixed vocabulary needing a
+		// machine-readable `choices` constraint. There is no closed list here:
+		// the type is inferred from the value's shape and an unrecognized
+		// string yields NULL.
+		{Name: "value", Position: 0, ArrowType: "varchar", Doc: "A single indicator observable to classify. An IP address / domain name / URL / file-hash string is accepted; the type is inferred from the value's shape and an unrecognized string returns NULL."},
 	}
 }
 
@@ -237,7 +244,11 @@ var reputationSchema = arrow.NewSchema([]arrow.Field{
 }, nil)
 
 type reputationArgs struct {
-	Indicator string `vgi:"pos=0,doc=Indicator to look up (IP, domain, URL, or file hash)"`
+	// The indicator input is an OPEN set (any observable string), so the doc is
+	// slash-delimited rather than a comma "…, or …" list (VGI317): there is no
+	// closed vocabulary to declare as `choices`. (Slash form also keeps commas
+	// out of the vgi struct-tag, which is comma-separated.)
+	Indicator string `vgi:"pos=0,doc=A single indicator observable to look up against the reputation source. An IP address / domain name / URL / file-hash string is accepted; private/reserved and unrecognized inputs return zero rows without a network call."`
 	BaseURL   string `vgi:"name=base_url,default=,doc=Override the reputation API base URL"`
 	APIKey    string `vgi:"name=api_key,default=,doc=API key for the reputation source (if required)"`
 	TimeoutMS int64  `vgi:"name=timeout_ms,default=15000,doc=Per-request HTTP timeout in milliseconds"`
@@ -298,15 +309,21 @@ func (f *ReputationFunction) Metadata() vgi.FunctionMetadata {
 				"threatfox", "virustotal", "soc", "threat hunting",
 			},
 		), map[string]string{
-			"vgi.result_columns_md": "| column | type | description |\n" +
-				"|---|---|---|\n" +
-				"| `indicator` | VARCHAR | The looked-up indicator, echoed back. |\n" +
-				"| `type` | VARCHAR | IoC type as reported by the source (ipv4/ipv6/domain/url/md5/sha1/sha256). |\n" +
-				"| `malicious` | BOOLEAN | Whether the source classifies the indicator as malicious. |\n" +
-				"| `score` | DOUBLE | Reputation/threat score, or NULL when the source reports none. |\n" +
-				"| `categories` | VARCHAR[] | Threat categories (e.g. `malware`, `phishing`, `c2`). |\n" +
-				"| `source` | VARCHAR | Name of the reputation feed that produced the verdict. |\n" +
-				"| `last_seen` | VARCHAR | When the source last observed the indicator (ISO-8601 string). |",
+			// VGI307/VGI321: this table function has a static result schema, so
+			// declare it as the structured vgi.result_columns_schema (a JSON
+			// array of {name,type,description}). The legacy free-form
+			// vgi.result_columns_md is retired (VGI414). Types mirror
+			// reputationSchema exactly so VGI910 (schema matches what the
+			// function returns, under --execute) stays satisfied.
+			"vgi.result_columns_schema": `[` +
+				`{"name":"indicator","type":"VARCHAR","description":"The looked-up indicator, echoed back."},` +
+				`{"name":"type","type":"VARCHAR","description":"IoC type as reported by the source (ipv4/ipv6/domain/url/md5/sha1/sha256)."},` +
+				`{"name":"malicious","type":"BOOLEAN","description":"Whether the source classifies the indicator as malicious."},` +
+				`{"name":"score","type":"DOUBLE","description":"Reputation/threat score, or NULL when the source reports none."},` +
+				`{"name":"categories","type":"VARCHAR[]","description":"Threat categories the source assigned (for example malware, phishing, or c2)."},` +
+				`{"name":"source","type":"VARCHAR","description":"Name of the reputation feed that produced the verdict."},` +
+				`{"name":"last_seen","type":"VARCHAR","description":"When the source last observed the indicator (ISO-8601 string)."}` +
+				`]`,
 		}),
 	}
 }
@@ -420,10 +437,95 @@ func isNullArg(args *vgi.Arguments, pos int) bool {
 	return col.Len() == 0 || col.IsNull(0)
 }
 
+// ===========================================================================
+// Browsable reference view (VGI146) — indicator_types.
+// ===========================================================================
+//
+// A worker that exposes only functions/table-functions gives an agent nothing
+// to LIST and scan before it has to guess arguments (VGI146). indicator_types
+// is a small, curated, VALUES-backed reference view: it enumerates every IoC
+// type that indicator_type() can return, each with a short description and a
+// canonical example. Being VALUES-backed it scans with NO network or credential
+// (so it also clears VGI911 for free), and it is a real view (iter_table_like),
+// not a parameterless table-function wrapper (which VGI145 would flag).
+
+// indicatorTypesViewDef is the SQL backing the indicator_types view. It is a
+// static VALUES relation aliased to the view's three columns. The rows are the
+// exact closed set of types IndicatorType can emit, so the view documents the
+// classifier's output space and can be browsed offline.
+const indicatorTypesViewDef = `SELECT * FROM (VALUES
+  ('ipv4',   'IPv4 address in dotted-quad notation',                    '8.8.8.8'),
+  ('ipv6',   'IPv6 address in colon-hex notation',                      '2001:4860:4860::8888'),
+  ('domain', 'DNS domain name (hostname)',                              'example.com'),
+  ('url',    'Absolute HTTP or HTTPS URL',                              'https://example.com/path'),
+  ('md5',    'MD5 file hash (32 hexadecimal characters)',               '44d88612fea8a8f36de82e1278abb02f'),
+  ('sha1',   'SHA-1 file hash (40 hexadecimal characters)',             'da39a3ee5e6b4b0d3255bfef95601890afd80709'),
+  ('sha256', 'SHA-256 file hash (64 hexadecimal characters)',           'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855')
+) AS t(indicator_type, description, example)`
+
+// indicatorTypesExampleQueries is the object-level vgi.example_queries for the
+// indicator_types view (VGI502: a JSON array of {description, sql}). It CALLS
+// the view (VGI511) with an explicit column projection and ORDER BY rather than
+// a bare SELECT * (VGI514), and is fully catalog-qualified so it counts toward
+// coverage and executes under --execute.
+const indicatorTypesExampleQueries = `[
+  {
+    "description": "List every IoC type the worker recognizes, with a description and a canonical example of each.",
+    "sql": "SELECT indicator_type, description, example FROM threatintel.main.indicator_types ORDER BY indicator_type"
+  },
+  {
+    "description": "Look up the canonical example and human description for a single indicator type (sha256).",
+    "sql": "SELECT description, example FROM threatintel.main.indicator_types WHERE indicator_type = 'sha256'"
+  }
+]`
+
+// registerIndicatorTypesView registers the indicator_types reference view.
+func registerIndicatorTypesView(w *vgi.Worker) {
+	w.RegisterCatalogView("main", vgi.CatalogView{
+		Name:       "indicator_types",
+		Definition: indicatorTypesViewDef,
+		Comment: "Reference table of the indicator (IoC) types this worker classifies — the exact " +
+			"closed set of values indicator_type() can return — each with a description and a " +
+			"canonical example. Browse it to learn the classifier's output space; VALUES-backed, " +
+			"so it scans offline with no network call.",
+		ColumnComments: map[string]string{
+			"indicator_type": "The IoC type name, one of the values indicator_type() emits (ipv4/ipv6/domain/url/md5/sha1/sha256).",
+			"description":    "Human-readable description of the indicator type.",
+			"example":        "A canonical example value of this indicator type.",
+		},
+		Tags: mergeTags(objectTags(
+			"Supported Indicator Types",
+			"Curated reference view enumerating every indicator (IoC) type the worker classifies — "+
+				"ipv4, ipv6, domain, url, md5, sha1, and sha256 — the exact closed set of values the "+
+				"indicator_type scalar can return. Each row carries the type name, a human-readable "+
+				"description, and a canonical example. VALUES-backed, so it browses offline with no "+
+				"network access; use it to discover what indicator_type can classify a string into "+
+				"before enriching.",
+			"A reference view listing every IoC type the worker recognizes (`ipv4`/`ipv6`/`domain`/"+
+				"`url`/`md5`/`sha1`/`sha256`), with a description and a canonical example of each. "+
+				"VALUES-backed and offline; it documents the exact output space of `indicator_type`.",
+			"Offline Triage",
+			[]string{
+				"indicator types", "ioc types", "reference", "catalog", "ipv4", "ipv6",
+				"domain", "url", "md5", "sha1", "sha256", "classify", "vocabulary",
+				"threat intel", "soc",
+			},
+		), map[string]string{
+			"vgi.example_queries": indicatorTypesExampleQueries,
+			// VGI123 classifying tags MUST use BARE keys (not vgi.-namespaced),
+			// and reuse the schema's vocabulary so the facet stays a small
+			// shared set rather than a per-object value (VGI727).
+			"domain": "security",
+			"topic":  "indicator-enrichment",
+		}),
+	})
+}
+
 // Register registers all threat-intel functions (offline scalars + reputation
-// table function).
+// table function) plus the indicator_types reference view.
 func Register(w *vgi.Worker) {
 	w.RegisterScalar(NewIndicatorTypeFunction())
 	w.RegisterScalar(NewIsPrivateIPFunction())
 	w.RegisterTable(NewReputationFunction())
+	registerIndicatorTypesView(w)
 }

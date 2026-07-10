@@ -61,17 +61,32 @@ func main() {
 				`"prompt":"Classify the indicator e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 into its indicator type.",` +
 				`"reference_sql":"SELECT threatintel.main.indicator_type('e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855') AS kind;",` +
 				`"ignore_column_names":true},` +
-				`{"name":"is_private_rfc1918_ip",` +
-				`"prompt":"Is the IP address 10.0.0.5 a private or reserved address that should not be sent to an external reputation feed?",` +
-				`"reference_sql":"SELECT threatintel.main.is_private_ip('10.0.0.5') AS private;",` +
+				// These two tasks ask "which IP" (returning a single, unambiguous
+				// IP string) rather than a yes/no question: a bare boolean/yes-no
+				// prompt lets the analyst answer in many equivalent-but-unequal
+				// shapes ('yes' vs TRUE vs 1), which strict reference-compare
+				// grading (VGI920) rejects. A specific-string answer mirrors the
+				// reliably-passing "classify into its type" tasks and exercises
+				// is_private_ip as the intended per-row triage filter.
+				`{"name":"private_ip_must_not_be_looked_up",` +
+				`"prompt":"You have two candidate IP addresses to enrich: 10.0.0.5 and 8.8.8.8. Which one must NOT be sent to an external reputation feed because it is a private or reserved address? Return only that IP address.",` +
+				`"reference_sql":"SELECT ip FROM (VALUES ('10.0.0.5'), ('8.8.8.8')) AS t(ip) WHERE threatintel.main.is_private_ip(ip);",` +
 				`"ignore_column_names":true},` +
-				`{"name":"public_ip_is_not_private",` +
-				`"prompt":"Is the IP address 8.8.8.8 a private or reserved address?",` +
-				`"reference_sql":"SELECT threatintel.main.is_private_ip('8.8.8.8') AS private;",` +
+				`{"name":"public_ip_is_safe_to_enrich",` +
+				`"prompt":"Of the IP addresses 10.0.0.5 and 8.8.8.8, which is a routable public address that is safe to look up against an external reputation feed? Return only that IP address.",` +
+				`"reference_sql":"SELECT ip FROM (VALUES ('10.0.0.5'), ('8.8.8.8')) AS t(ip) WHERE NOT threatintel.main.is_private_ip(ip);",` +
 				`"ignore_column_names":true},` +
 				`{"name":"private_ip_yields_zero_reputation_rows",` +
 				`"prompt":"How many reputation rows are returned for the private IP address 10.0.0.5 (which is triaged out before any lookup)?",` +
 				`"reference_sql":"SELECT count(*) AS n FROM threatintel.main.reputation('10.0.0.5');",` +
+				`"ignore_column_names":true},` +
+				`{"name":"count_supported_indicator_types",` +
+				`"prompt":"Using the worker's indicator_types reference view, how many distinct indicator (IoC) types does this worker recognize?",` +
+				`"reference_sql":"SELECT count(*) AS n FROM threatintel.main.indicator_types;",` +
+				`"ignore_column_names":true},` +
+				`{"name":"canonical_example_for_sha256",` +
+				`"prompt":"According to the indicator_types reference view, what is the canonical example value for the sha256 indicator type?",` +
+				`"reference_sql":"SELECT example FROM threatintel.main.indicator_types WHERE indicator_type = 'sha256';",` +
 				`"ignore_column_names":true}` +
 				`]`,
 			"vgi.doc_llm": "Defensive threat-intelligence worker for cyber indicators (IoCs). " +
@@ -112,12 +127,10 @@ func main() {
 				"enriches a single indicator against the configured source — selected with `base_url` " +
 				"plus optional `api_key` and `timeout_ms` — and returns at most one verdict row with " +
 				"the `malicious` flag, `score`, `categories`, `source`, and `last_seen`.\n\n" +
-				"A typical workflow triages a whole column of indicators with the scalars first, " +
-				"then looks up only the survivors:\n\n" +
-				"```sql\n" +
-				"SELECT indicator_type(ind), is_private_ip(ind) FROM events;\n" +
-				"```\n\n" +
-				"Enrich the survivors with `reputation('1.2.3.4')`. Private/reserved IPs and unknown " +
+				"A typical workflow first triages a whole column of indicators with the two offline " +
+				"scalars — `indicator_type` to classify each observable and `is_private_ip` to screen " +
+				"out internal hosts — and then enriches only the survivors with " +
+				"`reputation('1.2.3.4')`. Private/reserved IPs and unknown " +
 				"indicators return zero rows with no error, so enrichment stays cheap and safe. See " +
 				"the [vgi-threatintel source repository](https://github.com/Query-farm/vgi-threatintel) " +
 				"for adapter examples and the full normalized-feed contract.",
