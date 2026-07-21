@@ -180,15 +180,22 @@ func main() {
 					"verdict row (malicious flag, score, categories, source, last_seen).\n\n" +
 					"The usual pattern is to triage a whole column of indicators with the " +
 					"offline scalars first, then enrich only the survivors so lookups stay " +
-					"cheap and safe. List the schema to discover the individual functions and " +
-					"their arguments.",
-				// VGI506 representative example queries (a plain string; not executed).
-				// Includes a backend-qualified reputation lookup, which the offline
-				// linter run does not execute.
-				"vgi.example_queries": "SELECT threatintel.main.indicator_type('8.8.8.8');\n" +
-					"SELECT threatintel.main.is_private_ip('10.0.0.5');\n" +
-					"SELECT * FROM threatintel.main.reputation('1.2.3.4');\n" +
-					"SELECT malicious, score, categories FROM threatintel.main.reputation('evil.example.com', base_url := 'https://my-reputation-adapter.internal/reputation', api_key := 'YOUR_KEY');",
+					"cheap and safe.",
+				// VGI506/VGI515 representative example queries as a described list
+				// ([{description, sql}]) so every example carries a human-readable
+				// description. Uses explicit projections (VGI514, no bare SELECT *).
+				// The two reputation examples are backend-qualified and not
+				// executed by the offline linter run.
+				"vgi.example_queries": `[` +
+					`{"description":"Classify an IPv4 address string into its indicator (IoC) type.",` +
+					`"sql":"SELECT threatintel.main.indicator_type('8.8.8.8') AS kind"},` +
+					`{"description":"Flag a private/reserved (RFC1918) IP that should never be sent to an external reputation feed.",` +
+					`"sql":"SELECT threatintel.main.is_private_ip('10.0.0.5') AS is_private"},` +
+					`{"description":"Enrich a single indicator against the configured reputation source, projecting the verdict fields.",` +
+					`"sql":"SELECT indicator, malicious, score, categories FROM threatintel.main.reputation('1.2.3.4')"},` +
+					`{"description":"Look up an indicator against an explicit reputation adapter with an API key, keeping only the malicious flag, score, and categories.",` +
+					`"sql":"SELECT malicious, score, categories FROM threatintel.main.reputation('evil.example.com', base_url := 'https://my-reputation-adapter.internal/reputation', api_key := 'YOUR_KEY')"}` +
+					`]`,
 				// VGI509: guaranteed-runnable executable examples (offline-safe).
 				"vgi.executable_examples": threatworker.ExecutableExamples,
 			},

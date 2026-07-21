@@ -81,22 +81,23 @@ type IndicatorTypeFunction struct{}
 func (f *IndicatorTypeFunction) Name() string { return "indicator_type" }
 
 func (f *IndicatorTypeFunction) Metadata() vgi.FunctionMetadata {
+	examples := []vgi.CatalogExample{
+		{
+			SQL:         "SELECT threatintel.main.indicator_type('8.8.8.8');",
+			Description: "Classify an IPv4 address; returns 'ipv4'.",
+		},
+		{
+			SQL:         "SELECT threatintel.main.indicator_type('44d88612fea8a8f36de82e1278abb02f');",
+			Description: "Classify a 32-hex-character file hash as 'md5'.",
+		},
+	}
 	return vgi.FunctionMetadata{
 		Description: "Classify an indicator as ipv4/ipv6/domain/url/md5/sha1/sha256, or NULL if unrecognized",
 		Stability:   vgi.StabilityConsistent,
 		ReturnType:  arrow.BinaryTypes.String,
 		Categories:  []string{"threatintel", "ioc"},
-		Examples: []vgi.CatalogExample{
-			{
-				SQL:         "SELECT threatintel.main.indicator_type('8.8.8.8');",
-				Description: "Classify an IPv4 address; returns 'ipv4'.",
-			},
-			{
-				SQL:         "SELECT threatintel.main.indicator_type('44d88612fea8a8f36de82e1278abb02f');",
-				Description: "Classify a 32-hex-character file hash as 'md5'.",
-			},
-		},
-		Tags: objectTags(
+		Examples:    examples,
+		Tags: mergeTags(objectTags(
 			"Classify Indicator Type",
 			"Classify a single cyber indicator (IoC) string into its type: ipv4, ipv6, "+
 				"domain, url, md5, sha1, or sha256. Returns NULL for an unrecognized or "+
@@ -110,7 +111,13 @@ func (f *IndicatorTypeFunction) Metadata() vgi.FunctionMetadata {
 				"hash", "md5", "sha1", "sha256", "triage", "threat intel",
 				"threat hunting", "soc",
 			},
-		),
+		), map[string]string{
+			// VGI515: the native duckdb_functions().examples carrier drops the
+			// per-example descriptions, so surface the same examples as a
+			// described-list tag (byte-identical to Examples via the shared
+			// helper) so every example carries a human-readable description.
+			"vgi.example_queries": exampleQueriesJSON(examples),
+		}),
 	}
 }
 
@@ -170,22 +177,23 @@ type IsPrivateIPFunction struct{}
 func (f *IsPrivateIPFunction) Name() string { return "is_private_ip" }
 
 func (f *IsPrivateIPFunction) Metadata() vgi.FunctionMetadata {
+	examples := []vgi.CatalogExample{
+		{
+			SQL:         "SELECT threatintel.main.is_private_ip('10.0.0.5');",
+			Description: "An RFC1918 address is private; returns true.",
+		},
+		{
+			SQL:         "SELECT threatintel.main.is_private_ip('8.8.8.8');",
+			Description: "A routable public address; returns false (safe to look up).",
+		},
+	}
 	return vgi.FunctionMetadata{
 		Description: "Report whether an indicator is a private/reserved IP (RFC1918/loopback/etc.); false for non-IPs",
 		Stability:   vgi.StabilityConsistent,
 		ReturnType:  arrow.FixedWidthTypes.Boolean,
 		Categories:  []string{"threatintel", "ioc"},
-		Examples: []vgi.CatalogExample{
-			{
-				SQL:         "SELECT threatintel.main.is_private_ip('10.0.0.5');",
-				Description: "An RFC1918 address is private; returns true.",
-			},
-			{
-				SQL:         "SELECT threatintel.main.is_private_ip('8.8.8.8');",
-				Description: "A routable public address; returns false (safe to look up).",
-			},
-		},
-		Tags: objectTags(
+		Examples:    examples,
+		Tags: mergeTags(objectTags(
 			"Is Private Reserved IP",
 			"Report whether an indicator is an IP literal in a private or reserved range "+
 				"(RFC1918, loopback, link-local, CGNAT, documentation/TEST-NET, multicast, "+
@@ -200,13 +208,16 @@ func (f *IsPrivateIPFunction) Metadata() vgi.FunctionMetadata {
 				"cgnat", "test-net", "documentation range", "internal host",
 				"triage", "ip filter", "threat intel", "soc",
 			},
-		),
+		), map[string]string{
+			// VGI515: described-list mirror of Examples (see indicator_type).
+			"vgi.example_queries": exampleQueriesJSON(examples),
+		}),
 	}
 }
 
 func (f *IsPrivateIPFunction) ArgumentSpecs() []vgi.ArgSpec {
 	return []vgi.ArgSpec{
-		{Name: "value", Position: 0, ArrowType: "varchar", Doc: "IP literal to test"},
+		{Name: "value", Position: 0, ArrowType: "varchar", Doc: "An IP address literal to test. Any non-IP input (a domain, URL, file hash, or NULL) returns false, so it is safe to apply directly to a mixed column of indicators."},
 	}
 }
 
@@ -269,26 +280,27 @@ var _ vgi.TypedTableFunc[reputationState] = (*ReputationFunction)(nil)
 func (f *ReputationFunction) Name() string { return "reputation" }
 
 func (f *ReputationFunction) Metadata() vgi.FunctionMetadata {
+	// These examples are chosen to execute cleanly WITHOUT a live reputation
+	// backend: a private/reserved IP and an unsupported indicator are triaged
+	// to zero rows in NewState BEFORE any network call (the worker never spends
+	// lookup budget on internal hosts or non-indicators). A real,
+	// backend-qualified lookup (an external IP/domain/hash against a configured
+	// base_url) is documented in the schema-level vgi.example_queries.
+	examples := []vgi.CatalogExample{
+		{
+			SQL:         "SELECT count(*) AS rows_for_private_ip FROM threatintel.main.reputation('10.0.0.5');",
+			Description: "A private/reserved IP is triaged to zero verdict rows before any network call (no public-reputation budget spent on internal hosts); count(*) returns 0.",
+		},
+		{
+			SQL:         "SELECT count(*) AS rows_for_unsupported FROM threatintel.main.reputation('not-an-indicator');",
+			Description: "An unsupported indicator string yields zero verdict rows (no lookup); count(*) returns 0.",
+		},
+	}
 	return vgi.FunctionMetadata{
 		Description: "Look up one indicator against a threat-intel reputation source; returns at most one verdict row",
 		Stability:   vgi.StabilityVolatile,
 		Categories:  []string{"threatintel", "reputation"},
-		Examples: []vgi.CatalogExample{
-			// These examples are chosen to execute cleanly WITHOUT a live reputation
-			// backend: a private/reserved IP and an unsupported indicator are triaged
-			// to zero rows in NewState BEFORE any network call (the worker never
-			// spends lookup budget on internal hosts or non-indicators). A real,
-			// backend-qualified lookup (an external IP/domain/hash against a
-			// configured base_url) is documented in vgi.example_queries / columns_md.
-			{
-				SQL:         "SELECT count(*) AS rows_for_private_ip FROM threatintel.main.reputation('10.0.0.5');",
-				Description: "A private/reserved IP is triaged to zero verdict rows before any network call (no public-reputation budget spent on internal hosts); count(*) returns 0.",
-			},
-			{
-				SQL:         "SELECT count(*) AS rows_for_unsupported FROM threatintel.main.reputation('not-an-indicator');",
-				Description: "An unsupported indicator string yields zero verdict rows (no lookup); count(*) returns 0.",
-			},
-		},
+		Examples:    examples,
 		Tags: mergeTags(objectTags(
 			"Indicator Reputation Lookup",
 			"Look up one cyber indicator (IP, domain, URL, or file hash) against a "+
@@ -309,6 +321,9 @@ func (f *ReputationFunction) Metadata() vgi.FunctionMetadata {
 				"threatfox", "virustotal", "soc", "threat hunting",
 			},
 		), map[string]string{
+			// VGI515: described-list mirror of Examples (see indicator_type) —
+			// the native examples carrier drops the descriptions.
+			"vgi.example_queries": exampleQueriesJSON(examples),
 			// VGI307/VGI321: this table function has a static result schema, so
 			// declare it as the structured vgi.result_columns_schema (a JSON
 			// array of {name,type,description}). The legacy free-form

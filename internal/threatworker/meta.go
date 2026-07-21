@@ -2,7 +2,11 @@
 
 package threatworker
 
-import "encoding/json"
+import (
+	"encoding/json"
+
+	"github.com/Query-farm/vgi-go/vgi"
+)
 
 // Shared helpers for the per-object discovery/description metadata that the
 // vgi-lint strict profile expects on EVERY function and table. Each
@@ -21,6 +25,25 @@ import "encoding/json"
 // plain []string never fails, so the error is dropped.
 func keywordsJSON(keywords []string) string {
 	b, _ := json.Marshal(keywords)
+	return string(b)
+}
+
+// exampleQueriesJSON serializes a function's Examples into the described-list
+// form ([{"description":...,"sql":...}]) that the vgi.example_queries tag
+// requires (VGI515). The native duckdb_functions().examples carrier that the
+// FunctionMetadata.Examples field feeds drops the per-example descriptions, so
+// each function ALSO surfaces this tag — kept byte-identical to its Examples so
+// the two never drift, and so every example carries a human-readable description.
+func exampleQueriesJSON(examples []vgi.CatalogExample) string {
+	type describedExample struct {
+		Description string `json:"description"`
+		SQL         string `json:"sql"`
+	}
+	out := make([]describedExample, len(examples))
+	for i, e := range examples {
+		out[i] = describedExample{Description: e.Description, SQL: e.SQL}
+	}
+	b, _ := json.Marshal(out)
 	return string(b)
 }
 
