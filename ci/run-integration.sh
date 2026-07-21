@@ -33,6 +33,19 @@
 # Optional:
 #   TRANSPORT                subprocess (default) | http | unix
 #   STAGE                    scratch dir for the preprocessed tests (default: mktemp)
+#   TEST_PATTERN             repo-relative glob of .test files to stage/run
+#                            (default: test/sql/*.test — all of them). Use this
+#                            to run ONLY the offline suite when no reputation
+#                            mock is available, e.g. TEST_PATTERN=test/sql/indicator_offline.test.
+#   SKIP_MOCK                if non-empty, do NOT build/launch the mock reputation
+#                            server (and do not export VGI_THREATINTEL_TEST_URL).
+#                            For running the OFFLINE tests only — e.g. against a
+#                            prebuilt Docker image where `go`/the mock source are
+#                            unavailable. Defaults unset -> mock always started.
+#   Pre-launched HTTP        for TRANSPORT=http, if VGI_THREATINTEL_WORKER is
+#                            ALREADY an http(s):// URL (a warm container), the
+#                            script uses it verbatim instead of spawning
+#                            `<worker> --http` (no local binary needed).
 set -euo pipefail
 
 : "${HAYBARN_UNITTEST:?path to the haybarn-unittest binary}"
@@ -43,6 +56,9 @@ case "$TRANSPORT" in
   subprocess|http|unix) ;;
   *) echo "ERROR: unknown TRANSPORT='$TRANSPORT' (expected subprocess|http|unix)" >&2; exit 2 ;;
 esac
+
+TEST_PATTERN="${TEST_PATTERN:-test/sql/*.test}"
+SKIP_MOCK="${SKIP_MOCK:-}"
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 REPO="$(cd "$HERE/.." && pwd)"
@@ -66,28 +82,36 @@ cleanup() {
 }
 trap cleanup EXIT
 
-# --- Start the mock reputation server (the .test files query it; all transports)
-MOCK_BIN="$STAGE/mockserver"
-echo "Building mock reputation server ..."
-( cd "$REPO" && go build -o "$MOCK_BIN" ./cmd/mockserver )
+# --- Start the mock reputation server (the reputation .test files query it) ---
+# SKIP_MOCK skips this entirely (offline-only runs, e.g. against a Docker image
+# where the mock source / `go` toolchain are not present). The reputation tests
+# `require-env VGI_THREATINTEL_TEST_URL`, so they must be excluded via
+# TEST_PATTERN when SKIP_MOCK is set.
+if [ -z "$SKIP_MOCK" ]; then
+  MOCK_BIN="$STAGE/mockserver"
+  echo "Building mock reputation server ..."
+  ( cd "$REPO" && go build -o "$MOCK_BIN" ./cmd/mockserver )
 
-MOCK_PORT_FILE="$(mktemp)"
-"$MOCK_BIN" --addr 127.0.0.1:0 >"$MOCK_PORT_FILE" 2>/dev/null &
-MOCK_PID=$!
+  MOCK_PORT_FILE="$(mktemp)"
+  "$MOCK_BIN" --addr 127.0.0.1:0 >"$MOCK_PORT_FILE" 2>/dev/null &
+  MOCK_PID=$!
 
-PORT=""
-for _ in $(seq 1 30); do
-  PORT="$(sed -n 's/^PORT:\([0-9][0-9]*\)$/\1/p' "$MOCK_PORT_FILE" 2>/dev/null | head -1)"
-  [ -n "$PORT" ] && break
-  sleep 0.2
-done
-if [ -z "$PORT" ]; then
-  echo "ERROR: mock server did not report a port" >&2
-  exit 1
+  PORT=""
+  for _ in $(seq 1 30); do
+    PORT="$(sed -n 's/^PORT:\([0-9][0-9]*\)$/\1/p' "$MOCK_PORT_FILE" 2>/dev/null | head -1)"
+    [ -n "$PORT" ] && break
+    sleep 0.2
+  done
+  if [ -z "$PORT" ]; then
+    echo "ERROR: mock server did not report a port" >&2
+    exit 1
+  fi
+  rm -f "$MOCK_PORT_FILE"
+  export VGI_THREATINTEL_TEST_URL="http://127.0.0.1:$PORT/reputation"
+  echo "Mock reputation server listening on $VGI_THREATINTEL_TEST_URL (pid $MOCK_PID)"
+else
+  echo "SKIP_MOCK set: not starting the mock reputation server (offline tests only)."
 fi
-rm -f "$MOCK_PORT_FILE"
-export VGI_THREATINTEL_TEST_URL="http://127.0.0.1:$PORT/reputation"
-echo "Mock reputation server listening on $VGI_THREATINTEL_TEST_URL (pid $MOCK_PID)"
 
 # --- Per-transport: resolve VGI_THREATINTEL_WORKER (the ATTACH LOCATION) ------
 case "$TRANSPORT" in
@@ -96,26 +120,36 @@ case "$TRANSPORT" in
     ;;
 
   http)
-    WORKER_PORT_FILE="$(mktemp)"
-    echo "Transport: http — starting '$WORKER_BIN --http' ..."
-    "$WORKER_BIN" --http >"$WORKER_PORT_FILE" 2>/dev/null &
-    WORKER_PID=$!
-    WPORT=""
-    for _ in $(seq 1 50); do
-      WPORT="$(sed -n 's/^PORT:\([0-9][0-9]*\)$/\1/p' "$WORKER_PORT_FILE" 2>/dev/null | head -1)"
-      [ -n "$WPORT" ] && break
-      kill -0 "$WORKER_PID" 2>/dev/null || { echo "ERROR: http worker exited before reporting a port" >&2; cat "$WORKER_PORT_FILE" >&2 || true; exit 1; }
-      sleep 0.2
-    done
-    rm -f "$WORKER_PORT_FILE"
-    if [ -z "$WPORT" ]; then
-      echo "ERROR: http worker did not report a port" >&2
-      exit 1
-    fi
-    # Bare scheme://host:port with NO path (the extension POSTs each RPC method
-    # at <LOCATION>/<method>, mounted at the server root).
-    export VGI_THREATINTEL_WORKER="http://127.0.0.1:$WPORT"
-    echo "HTTP worker listening on $VGI_THREATINTEL_WORKER (pid $WORKER_PID)"
+    # Pre-launched HTTP: if the caller already passed an http(s):// URL (a warm
+    # container serving the worker), use it verbatim — no local binary to spawn.
+    case "$WORKER_BIN" in
+      http://*|https://*)
+        export VGI_THREATINTEL_WORKER="$WORKER_BIN"
+        echo "Transport: http — using pre-launched HTTP worker at $VGI_THREATINTEL_WORKER"
+        ;;
+      *)
+        WORKER_PORT_FILE="$(mktemp)"
+        echo "Transport: http — starting '$WORKER_BIN --http' ..."
+        "$WORKER_BIN" --http >"$WORKER_PORT_FILE" 2>/dev/null &
+        WORKER_PID=$!
+        WPORT=""
+        for _ in $(seq 1 50); do
+          WPORT="$(sed -n 's/^PORT:\([0-9][0-9]*\)$/\1/p' "$WORKER_PORT_FILE" 2>/dev/null | head -1)"
+          [ -n "$WPORT" ] && break
+          kill -0 "$WORKER_PID" 2>/dev/null || { echo "ERROR: http worker exited before reporting a port" >&2; cat "$WORKER_PORT_FILE" >&2 || true; exit 1; }
+          sleep 0.2
+        done
+        rm -f "$WORKER_PORT_FILE"
+        if [ -z "$WPORT" ]; then
+          echo "ERROR: http worker did not report a port" >&2
+          exit 1
+        fi
+        # Bare scheme://host:port with NO path (the extension POSTs each RPC
+        # method at <LOCATION>/<method>, mounted at the server root).
+        export VGI_THREATINTEL_WORKER="http://127.0.0.1:$WPORT"
+        echo "HTTP worker listening on $VGI_THREATINTEL_WORKER (pid $WORKER_PID)"
+        ;;
+    esac
     ;;
 
   unix)
@@ -144,11 +178,20 @@ case "$TRANSPORT" in
 esac
 
 # --- Stage the preprocessed tests -------------------------------------------
-echo "Staging preprocessed tests into $STAGE ..."
+echo "Staging preprocessed tests into $STAGE (pattern: $TEST_PATTERN) ..."
 mkdir -p "$STAGE/test/sql"
-for f in "$REPO"/test/sql/*.test; do
+STAGED=0
+# TEST_PATTERN is a repo-relative glob; unquoted for globbing, guarded against a
+# no-match literal by the -e test.
+for f in "$REPO"/$TEST_PATTERN; do
+  [ -e "$f" ] || continue
   awk -f "$HERE/preprocess-require.awk" "$f" > "$STAGE/test/sql/$(basename "$f")"
+  STAGED=$((STAGED + 1))
 done
+if [ "$STAGED" -eq 0 ]; then
+  echo "ERROR: TEST_PATTERN '$TEST_PATTERN' matched no .test files under $REPO" >&2
+  exit 1
+fi
 
 # The HTTP transport drives the worker-RPC POSTs through DuckDB's HTTP client,
 # only registered when `httpfs` is loaded. The .test files only `LOAD vgi`, so

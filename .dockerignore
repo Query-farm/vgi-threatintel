@@ -1,0 +1,23 @@
+# Keep the build context small: the Dockerfile only needs go.mod/go.sum + the
+# internal/ and cmd/ sources. Everything below is rebuilt inside the image or
+# irrelevant to the build.
+.git
+.github
+.gitignore
+.golangci.yml
+docs
+test
+ci
+Makefile
+README.md
+CLAUDE.md
+LICENSE
+duckdb_unittest_tempdir
+# Built binaries checked out locally (never ship these into the context).
+/vgi-threatintel-worker
+/mockserver
+*.out
+coverage.out
+/*.test
+.vgi-*-cache.json
+.DS_Store
