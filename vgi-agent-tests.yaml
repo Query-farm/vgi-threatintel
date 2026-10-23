@@ -1,0 +1,30 @@
+# Private graders for the agent-suitability suite (`vgi-lint simulate`).
+#
+# The prompts are published in the catalog's vgi.agent_test_tasks tag
+# (cmd/vgi-threatintel-worker/main.go); the answers live here, keyed by task
+# name, so the agent being graded never sees them (VGI416). vgi-lint discovers
+# this file in the directory it runs from. Every reference uses the offline,
+# deterministic path only, so the suite needs no live reputation backend.
+
+tasks:
+  - name: type_an_ipv4_indicator
+    reference_sql: "SELECT threatintel.main.indicator_type('8.8.8.8') AS kind;"
+    ignore_column_names: true
+  - name: type_a_sha256_hash
+    reference_sql: "SELECT threatintel.main.indicator_type('e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855') AS kind;"
+    ignore_column_names: true
+  - name: private_ip_must_not_be_looked_up
+    reference_sql: "SELECT ip FROM (VALUES ('10.0.0.5'), ('8.8.8.8')) AS t(ip) WHERE threatintel.main.is_private_ip(ip);"
+    ignore_column_names: true
+  - name: public_ip_is_safe_to_enrich
+    reference_sql: "SELECT ip FROM (VALUES ('10.0.0.5'), ('8.8.8.8')) AS t(ip) WHERE NOT threatintel.main.is_private_ip(ip);"
+    ignore_column_names: true
+  - name: private_ip_yields_zero_reputation_rows
+    reference_sql: "SELECT count(*) AS n FROM threatintel.main.reputation('10.0.0.5');"
+    ignore_column_names: true
+  - name: count_supported_indicator_types
+    reference_sql: "SELECT count(*) AS n FROM threatintel.main.indicator_types;"
+    ignore_column_names: true
+  - name: canonical_example_for_sha256
+    reference_sql: "SELECT example FROM threatintel.main.indicator_types WHERE indicator_type = 'sha256';"
+    ignore_column_names: true

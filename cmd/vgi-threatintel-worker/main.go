@@ -49,20 +49,18 @@ func main() {
 				`"domain","url","file hash","reputation","malicious","enrichment",` +
 				`"classification","soc","threat hunting","incident response","cyber",` +
 				`"defensive security"]`,
-			// VGI152: agent test suite (simulate). Every reference_sql uses the
+			// VGI152: agent test suite (simulate). Only name/prompt are published
+			// here; the graders live in the private vgi-agent-tests.yaml sidecar
+			// (VGI416), keyed by name. Every reference_sql there uses the
 			// OFFLINE, deterministic path only — the classification scalars and
 			// the reputation triage that returns zero rows for private/reserved
 			// IPs and unsupported strings BEFORE any network call — so the suite
 			// grades reproducibly with no live reputation backend.
 			"vgi.agent_test_tasks": `[` +
 				`{"name":"type_an_ipv4_indicator",` +
-				`"prompt":"What indicator type does the string 8.8.8.8 classify as?",` +
-				`"reference_sql":"SELECT threatintel.main.indicator_type('8.8.8.8') AS kind;",` +
-				`"ignore_column_names":true},` +
+				`"prompt":"What indicator type does the string 8.8.8.8 classify as?"},` +
 				`{"name":"type_a_sha256_hash",` +
-				`"prompt":"Classify the indicator e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 into its indicator type.",` +
-				`"reference_sql":"SELECT threatintel.main.indicator_type('e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855') AS kind;",` +
-				`"ignore_column_names":true},` +
+				`"prompt":"Classify the indicator e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 into its indicator type."},` +
 				// These two tasks ask "which IP" (returning a single, unambiguous
 				// IP string) rather than a yes/no question: a bare boolean/yes-no
 				// prompt lets the analyst answer in many equivalent-but-unequal
@@ -71,25 +69,15 @@ func main() {
 				// reliably-passing "classify into its type" tasks and exercises
 				// is_private_ip as the intended per-row triage filter.
 				`{"name":"private_ip_must_not_be_looked_up",` +
-				`"prompt":"You have two candidate IP addresses to enrich: 10.0.0.5 and 8.8.8.8. Which one must NOT be sent to an external reputation feed because it is a private or reserved address? Return only that IP address.",` +
-				`"reference_sql":"SELECT ip FROM (VALUES ('10.0.0.5'), ('8.8.8.8')) AS t(ip) WHERE threatintel.main.is_private_ip(ip);",` +
-				`"ignore_column_names":true},` +
+				`"prompt":"You have two candidate IP addresses to enrich: 10.0.0.5 and 8.8.8.8. Which one must NOT be sent to an external reputation feed because it is a private or reserved address? Return only that IP address."},` +
 				`{"name":"public_ip_is_safe_to_enrich",` +
-				`"prompt":"Of the IP addresses 10.0.0.5 and 8.8.8.8, which is a routable public address that is safe to look up against an external reputation feed? Return only that IP address.",` +
-				`"reference_sql":"SELECT ip FROM (VALUES ('10.0.0.5'), ('8.8.8.8')) AS t(ip) WHERE NOT threatintel.main.is_private_ip(ip);",` +
-				`"ignore_column_names":true},` +
+				`"prompt":"Of the IP addresses 10.0.0.5 and 8.8.8.8, which is a routable public address that is safe to look up against an external reputation feed? Return only that IP address."},` +
 				`{"name":"private_ip_yields_zero_reputation_rows",` +
-				`"prompt":"How many reputation rows are returned for the private IP address 10.0.0.5 (which is triaged out before any lookup)?",` +
-				`"reference_sql":"SELECT count(*) AS n FROM threatintel.main.reputation('10.0.0.5');",` +
-				`"ignore_column_names":true},` +
+				`"prompt":"How many reputation rows are returned for the private IP address 10.0.0.5 (which is triaged out before any lookup)?"},` +
 				`{"name":"count_supported_indicator_types",` +
-				`"prompt":"Using the worker's indicator_types reference view, how many distinct indicator (IoC) types does this worker recognize?",` +
-				`"reference_sql":"SELECT count(*) AS n FROM threatintel.main.indicator_types;",` +
-				`"ignore_column_names":true},` +
+				`"prompt":"Using the worker's indicator_types reference view, how many distinct indicator (IoC) types does this worker recognize?"},` +
 				`{"name":"canonical_example_for_sha256",` +
-				`"prompt":"According to the indicator_types reference view, what is the canonical example value for the sha256 indicator type?",` +
-				`"reference_sql":"SELECT example FROM threatintel.main.indicator_types WHERE indicator_type = 'sha256';",` +
-				`"ignore_column_names":true}` +
+				`"prompt":"According to the indicator_types reference view, what is the canonical example value for the sha256 indicator type?"}` +
 				`]`,
 			"vgi.doc_llm": "Defensive threat-intelligence worker for cyber indicators (IoCs). " +
 				"Offline scalars classify an indicator string as ipv4/ipv6/domain/url/md5/sha1/sha256 " +
