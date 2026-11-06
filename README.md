@@ -149,7 +149,7 @@ mock on a free port, points the worker's `base_url` at it via
 It needs `haybarn-unittest` on `PATH`:
 
 ```sh
-uv tool install haybarn-unittest
+uv tool install --prerelease allow 'haybarn-unittest>=2.0.0rc11,<2.1'
 export PATH="$HOME/.local/bin:$PATH"
 ```
 

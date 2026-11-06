@@ -14,7 +14,7 @@
 # syntax=docker/dockerfile:1
 
 # ---- build stage -----------------------------------------------------------
-# CGO is REQUIRED: the vgi-go SDK links DuckDB (via duckdb/duckdb-go) to pull
+# CGO is REQUIRED: the vgi-go SDK links the Haybarn 2.0 engine (via haybarn-go) to pull
 # Arrow RecordBatches over the C Data Interface, so CGO_ENABLED=0 fails to
 # build. gcc/g++ + libc6-dev provide the C toolchain the cgo link needs.
 FROM golang:1.26-bookworm AS build

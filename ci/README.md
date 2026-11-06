@@ -16,7 +16,7 @@ extension from the Haybarn community channel:
    The resulting binary is a self-contained stdio worker the extension can
    spawn; `VGI_THREATINTEL_WORKER` (an absolute path) is the ATTACH `LOCATION`.
 2. **Download the runner** — the `haybarn_unittest-linux-amd64.zip` asset from
-   the latest Haybarn release.
+   the newest Haybarn 2.0 release (`haybarn-v2.0*`; the worker speaks vgi.v3).
 3. **Preprocess** — [`preprocess-require.awk`](preprocess-require.awk) rewrites
    any `require <ext>` gate into an explicit signed `INSTALL <ext> FROM
    {community,core}; LOAD <ext>;`. This repo's tests already use an explicit

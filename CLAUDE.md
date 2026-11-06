@@ -119,5 +119,5 @@ So batch enrichment is: (1) triage a column with the offline scalars, then
 
 ```sh
 go build ./... && go vet ./... && gofmt -l . && go test ./...
-make test-sql   # needs haybarn-unittest on PATH (uv tool install haybarn-unittest)
+make test-sql   # needs haybarn-unittest on PATH (uv tool install --prerelease allow 'haybarn-unittest>=2.0.0rc11,<2.1')
 ```
