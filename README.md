@@ -23,8 +23,7 @@ VGI protocol over stdio. Catalog name: `threatintel`.
 ```sql
 INSTALL vgi FROM community; LOAD vgi;
 
--- LOCATION is the path to the compiled worker binary.
-ATTACH 'threatintel' AS threatintel (TYPE vgi, LOCATION '/path/to/vgi-threatintel-worker');
+ATTACH 'threatintel' AS threatintel (TYPE vgi, LOCATION 'github-auto://Query-farm/vgi-threatintel@v0.2.1');
 
 -- Offline indicator typing / triage (no network):
 SELECT threatintel.indicator_type('1.2.3.4');        -- ipv4
@@ -36,6 +35,42 @@ SELECT threatintel.is_private_ip('8.8.8.8');         -- false
 SELECT indicator, type, malicious, score, categories, source, last_seen
 FROM threatintel.reputation('185.220.101.1');
 ```
+
+## Quick start
+
+Every [GitHub release](https://github.com/Query-farm/vgi-threatintel/releases) ships a prebuilt worker binary. The `vgi` extension downloads the one for your platform, checks its SHA-256 and caches it, so there is nothing to install besides DuckDB:
+
+```sql
+INSTALL vgi FROM community;
+LOAD vgi;
+
+ATTACH 'threatintel' AS threatintel (TYPE vgi, LOCATION 'github-auto://Query-farm/vgi-threatintel@v0.2.1');
+
+-- Classify an IPv4 address string into its indicator (IoC) type.
+SELECT threatintel.main.indicator_type('8.8.8.8') AS kind;
+
+-- Flag a private/reserved (RFC1918) IP that should never be sent to an external
+-- reputation feed.
+SELECT threatintel.main.is_private_ip('10.0.0.5') AS is_private;
+```
+
+The offline scalars above need no network or key. `reputation()` calls a reputation endpoint over HTTP: set it with `base_url := …` and pass your own key for that source with `api_key := …`. The shipped default is a placeholder endpoint shape, not a live provider; see [Pluggable, normalized reputation source](#pluggable-normalized-reputation-source).
+
+Prebuilt binaries cover macOS (Apple silicon), Linux (x86-64 and arm64) and Windows (x86-64). `github-auto://` needs an explicit release tag; change `@v0.2.1` to move to a newer release.
+
+### Other ways to run it
+
+- **Docker** (the image bundles the worker; needs a container runtime):
+
+  ```sql
+  ATTACH 'threatintel' AS threatintel (TYPE vgi, LOCATION 'docker://ghcr.io/query-farm/vgi-threatintel:0.2.1');
+  ```
+
+- **Manual download.** Download the archive for your platform from the [releases page](https://github.com/Query-farm/vgi-threatintel/releases), verify it against its `.sha256` file (a cosign `.cosign.bundle` is published alongside), unpack it, and set `LOCATION` to the path of the extracted worker executable.
+
+### Build from source
+
+To build the worker yourself, see [Build & test](#build--test).
 
 ## Functions
 
