@@ -43,8 +43,9 @@ func main() {
 		vgi.WithCatalogName(threatworker.CatalogName),
 		vgi.WithCatalogComment("Enrich cyber indicators against threat-intel reputation sources; classify offline"),
 		vgi.WithCatalogTags(map[string]string{
-			"source":    "vgi-threatintel",
-			"vgi.title": "Threat-Intel Indicator Enrichment",
+			"source":       "vgi-threatintel",
+			"vgi.title":    "Threat Intelligence",
+			"vgi.subtitle": "Classify IPs, domains, URLs, and file hashes offline, then enrich them against threat-intel reputation feeds.",
 			"vgi.keywords": `["threat intelligence","threat intel","indicators","ioc","ip",` +
 				`"domain","url","file hash","reputation","malicious","enrichment",` +
 				`"classification","soc","threat hunting","incident response","cyber",` +
@@ -86,7 +87,7 @@ func main() {
 				"threat-intel reputation source, returning at most one verdict row with a malicious " +
 				"flag, score, categories, source, and last_seen. Use to triage and enrich IPs, " +
 				"domains, URLs, and file hashes in SQL during SOC / threat-hunting work (AUTHORIZED use only).",
-			"vgi.doc_md": "# Threat-Intel Indicator Enrichment\n\n" +
+			"vgi.doc_md": "# Threat Intelligence\n\n" +
 				"**Enrich and classify cyber threat indicators — IPs, domains, URLs, and file " +
 				"hashes — against threat-intelligence reputation feeds directly in SQL.** This VGI " +
 				"worker turns DuckDB into a threat-hunting and indicator-of-compromise (IoC) triage " +
@@ -139,7 +140,7 @@ func main() {
 		}),
 		vgi.WithSchemaTags(map[string]map[string]string{
 			"main": {
-				"vgi.title": "Threat-Intel — main",
+				"vgi.title": "Indicator Enrichment",
 				"vgi.keywords": `["threat intel","indicator","ioc","indicator_type",` +
 					`"is_private_ip","reputation","classify","enrich","ip","domain","url",` +
 					`"file hash","malicious","soc","threat hunting"]`,
