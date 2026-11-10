@@ -23,7 +23,7 @@ VGI protocol over stdio. Catalog name: `threatintel`.
 ```sql
 INSTALL vgi FROM community; LOAD vgi;
 
-ATTACH 'threatintel' AS threatintel (TYPE vgi, LOCATION 'github-auto://Query-farm/vgi-threatintel@v0.2.1');
+ATTACH 'threatintel' AS threatintel (TYPE vgi, LOCATION 'github-auto://Query-farm/vgi-threatintel@v0.3.0');
 
 -- Offline indicator typing / triage (no network):
 SELECT threatintel.indicator_type('1.2.3.4');        -- ipv4
@@ -44,7 +44,7 @@ Every [GitHub release](https://github.com/Query-farm/vgi-threatintel/releases) s
 INSTALL vgi FROM community;
 LOAD vgi;
 
-ATTACH 'threatintel' AS threatintel (TYPE vgi, LOCATION 'github-auto://Query-farm/vgi-threatintel@v0.2.1');
+ATTACH 'threatintel' AS threatintel (TYPE vgi, LOCATION 'github-auto://Query-farm/vgi-threatintel@v0.3.0');
 
 -- Classify an IPv4 address string into its indicator (IoC) type.
 SELECT threatintel.main.indicator_type('8.8.8.8') AS kind;
@@ -56,14 +56,14 @@ SELECT threatintel.main.is_private_ip('10.0.0.5') AS is_private;
 
 The offline scalars above need no network or key. `reputation()` calls a reputation endpoint over HTTP: set it with `base_url := …` and pass your own key for that source with `api_key := …`. The shipped default is a placeholder endpoint shape, not a live provider; see [Pluggable, normalized reputation source](#pluggable-normalized-reputation-source).
 
-Prebuilt binaries cover macOS (Apple silicon), Linux (x86-64 and arm64) and Windows (x86-64). `github-auto://` needs an explicit release tag; change `@v0.2.1` to move to a newer release.
+Prebuilt binaries cover macOS (Apple silicon), Linux (x86-64 and arm64) and Windows (x86-64). `github-auto://` needs an explicit release tag; change `@v0.3.0` to move to a newer release.
 
 ### Other ways to run it
 
 - **Docker** (the image bundles the worker; needs a container runtime):
 
   ```sql
-  ATTACH 'threatintel' AS threatintel (TYPE vgi, LOCATION 'docker://ghcr.io/query-farm/vgi-threatintel:0.2.1');
+  ATTACH 'threatintel' AS threatintel (TYPE vgi, LOCATION 'docker://ghcr.io/query-farm/vgi-threatintel:0.3.0');
   ```
 
 - **Manual download.** Download the archive for your platform from the [releases page](https://github.com/Query-farm/vgi-threatintel/releases), verify it against its `.sha256` file (a cosign `.cosign.bundle` is published alongside), unpack it, and set `LOCATION` to the path of the extracted worker executable.
