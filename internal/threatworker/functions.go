@@ -296,7 +296,10 @@ func (f *ReputationFunction) Metadata() vgi.FunctionMetadata {
 			SQL:         "SELECT count(*) AS rows_for_unsupported FROM threatintel.main.reputation('not-an-indicator');",
 			Description: "An unsupported indicator string yields zero verdict rows (no lookup); count(*) returns 0.",
 		},
-		feedTypeCrossCheckExample,
+		// The composed feed-vs-classifier cross-check (feedTypeCrossCheckExample)
+		// needs a reachable base_url, and vgi-lint --execute runs every
+		// object-level example (VGI901), so it lives only in the schema-level
+		// vgi.example_queries list, which is not executed.
 	}
 	return vgi.FunctionMetadata{
 		Description: "Look up one indicator against a threat-intel reputation source; returns at most one verdict row",

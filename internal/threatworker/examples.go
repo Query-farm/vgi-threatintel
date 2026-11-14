@@ -9,6 +9,8 @@ import "github.com/Query-farm/vgi-go/vgi"
 // referenced from the schema-level vgi.example_queries list AND from the example
 // list of the object that drives the query (within its first five examples, the
 // only ones the vgi-lint agent simulator shows), so the copies never drift.
+// Exception: feedTypeCrossCheckExample needs a live reputation adapter, so it is
+// schema-level only (see below).
 //
 // The reputation table function accepts only LITERAL arguments (DuckDB rejects
 // LATERAL column parameters over a VGI table function), so the compositions are
@@ -73,7 +75,10 @@ FROM threatintel.main.reputation('malware-c2.example',
        base_url := 'https://my-reputation-adapter.internal/reputation') AS r
 ORDER BY r.indicator`
 
-// feedTypeCrossCheckExample: driven by reputation.
+// feedTypeCrossCheckExample: driven by reputation, but schema-level ONLY. It
+// needs a live adapter, and vgi-lint --execute runs every object-level example
+// (VGI901 would flag the unreachable host), while schema-level lists are not
+// executed. The same holds for the other backend-qualified reputation examples.
 var feedTypeCrossCheckExample = vgi.CatalogExample{
 	SQL: feedTypeCrossCheckSQL,
 	Description: "Sanity-check a reputation adapter: compare the type the feed reports for " +
