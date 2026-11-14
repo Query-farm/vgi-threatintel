@@ -56,39 +56,6 @@ func mergeTags(base, extra map[string]string) map[string]string {
 	return base
 }
 
-// ExecutableExamples is a JSON list of guaranteed-runnable {description, sql}
-// examples (VGI509/VGI906). Every statement is catalog-qualified, self-contained,
-// and re-runnable against an attached threatintel worker WITHOUT a live
-// reputation backend: the scalars are pure/offline, and the reputation calls use
-// a private/reserved IP and an unsupported string, both of which are triaged to
-// zero rows before any network call. expected_result is omitted deliberately.
-const ExecutableExamples = `[
-  {
-    "description": "Classify an IPv4 address as an indicator type.",
-    "sql": "SELECT threatintel.main.indicator_type('8.8.8.8') AS kind"
-  },
-  {
-    "description": "Classify a 64-hex-character file hash as sha256.",
-    "sql": "SELECT threatintel.main.indicator_type('e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855') AS kind"
-  },
-  {
-    "description": "Flag a private/reserved (RFC1918) IP that should not be looked up.",
-    "sql": "SELECT threatintel.main.is_private_ip('10.0.0.5') AS private"
-  },
-  {
-    "description": "A routable public IP is not private (safe to enrich).",
-    "sql": "SELECT threatintel.main.is_private_ip('8.8.8.8') AS private"
-  },
-  {
-    "description": "A private/reserved IP is triaged to zero reputation rows before any network call.",
-    "sql": "SELECT count(*) AS n FROM threatintel.main.reputation('10.0.0.5')"
-  },
-  {
-    "description": "An unsupported indicator string yields zero reputation rows (no lookup).",
-    "sql": "SELECT count(*) AS n FROM threatintel.main.reputation('not-an-indicator')"
-  }
-]`
-
 // objectTags builds the standard per-object discovery/description tags for a
 // function or table. keywords is a list of search terms/synonyms, serialized to
 // the JSON-array form vgi.keywords requires (VGI138). category (VGI413) must

@@ -31,6 +31,15 @@ SELECT threatintel.indicator_type('evil.example');   -- domain
 SELECT threatintel.is_private_ip('10.0.0.1');        -- true  (skip the lookup)
 SELECT threatintel.is_private_ip('8.8.8.8');         -- false
 
+-- Triage a batch: type each indicator, describe the type, flag what needs a lookup:
+WITH iocs(ioc) AS (VALUES ('185.220.101.1'), ('10.0.0.5'), ('malware-c2.example'), ('not-an-indicator!!'))
+SELECT i.ioc, t.indicator_type, t.description,
+       t.indicator_type IS NOT NULL AND NOT threatintel.is_private_ip(i.ioc) AS needs_lookup
+FROM iocs AS i
+LEFT JOIN threatintel.indicator_types AS t
+  ON t.indicator_type = threatintel.indicator_type(i.ioc)
+ORDER BY i.ioc;
+
 -- Reputation lookup against a threat-intel source:
 SELECT indicator, type, malicious, score, categories, source, last_seen
 FROM threatintel.reputation('185.220.101.1');

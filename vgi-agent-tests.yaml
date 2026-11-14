@@ -28,3 +28,10 @@ tasks:
   - name: canonical_example_for_sha256
     reference_sql: "SELECT example FROM threatintel.main.indicator_types WHERE indicator_type = 'sha256';"
     ignore_column_names: true
+  # Composed tasks (offline): scalars + the indicator_types view over a batch.
+  - name: count_batch_indicators_safe_to_enrich
+    reference_sql: "SELECT count(*) AS n FROM (VALUES ('185.220.101.1'), ('10.0.0.5'), ('evil.example'), ('192.168.1.20'), ('not-an-indicator'), ('44d88612fea8a8f36de82e1278abb02f')) AS t(ioc) WHERE threatintel.main.indicator_type(ioc) IS NOT NULL AND NOT threatintel.main.is_private_ip(ioc);"
+    ignore_column_names: true
+  - name: indicator_types_missing_from_batch
+    reference_sql: "SELECT t.indicator_type FROM threatintel.main.indicator_types AS t WHERE t.indicator_type NOT IN (SELECT threatintel.main.indicator_type(ioc) FROM (VALUES ('8.8.8.8'), ('2001:db8::1'), ('phish.example'), ('https://phish.example/login'), ('da39a3ee5e6b4b0d3255bfef95601890afd80709')) AS b(ioc) WHERE threatintel.main.indicator_type(ioc) IS NOT NULL) ORDER BY t.indicator_type;"
+    ignore_column_names: true

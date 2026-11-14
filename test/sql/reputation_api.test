@@ -116,3 +116,15 @@ SELECT count(*) FROM (
 WHERE malicious;
 ----
 2
+
+# ---- composed example (examples.go feedTypeCrossCheckSQL) against the mock ----
+# The feed's reported type agrees with the offline classifier.
+query TTTT
+SELECT r.indicator, r.type AS feed_type,
+       threatintel.main.indicator_type(r.indicator) AS offline_type,
+       r.type = threatintel.main.indicator_type(r.indicator) AS types_agree
+FROM threatintel.main.reputation('malware-c2.example',
+       base_url := '${VGI_THREATINTEL_TEST_URL}') AS r
+ORDER BY r.indicator
+----
+malware-c2.example	domain	domain	true

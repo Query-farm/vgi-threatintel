@@ -78,7 +78,13 @@ func main() {
 				`{"name":"count_supported_indicator_types",` +
 				`"prompt":"Using the worker's indicator_types reference view, how many distinct indicator (IoC) types does this worker recognize?"},` +
 				`{"name":"canonical_example_for_sha256",` +
-				`"prompt":"According to the indicator_types reference view, what is the canonical example value for the sha256 indicator type?"}` +
+				`"prompt":"According to the indicator_types reference view, what is the canonical example value for the sha256 indicator type?"},` +
+				// Composed tasks: combine the offline scalars and the
+				// indicator_types view over a small batch.
+				`{"name":"count_batch_indicators_safe_to_enrich",` +
+				`"prompt":"A SOC analyst has these candidate indicators: 185.220.101.1, 10.0.0.5, evil.example, 192.168.1.20, not-an-indicator, and 44d88612fea8a8f36de82e1278abb02f. How many of them are both a recognized indicator type and safe to send to an external reputation feed (i.e. not a private or reserved IP address)? Return a single count."},` +
+				`{"name":"indicator_types_missing_from_batch",` +
+				`"prompt":"Using the indicator_types reference view, which supported indicator types are NOT represented by any indicator in this batch: 8.8.8.8, 2001:db8::1, phish.example, https://phish.example/login, da39a3ee5e6b4b0d3255bfef95601890afd80709? Return a single column, indicator_type, with one row per missing type, ordered alphabetically."}` +
 				`]`,
 			"vgi.doc_llm": "Defensive threat-intelligence worker for cyber indicators (IoCs). " +
 				"Offline scalars classify an indicator string as ipv4/ipv6/domain/url/md5/sha1/sha256 " +
@@ -174,19 +180,11 @@ func main() {
 					"cheap and safe.",
 				// VGI506/VGI515 representative example queries as a described list
 				// ([{description, sql}]) so every example carries a human-readable
-				// description. Uses explicit projections (VGI514, no bare SELECT *).
-				// The two reputation examples are backend-qualified and not
-				// executed by the offline linter run.
-				"vgi.example_queries": `[` +
-					`{"description":"Classify an IPv4 address string into its indicator (IoC) type.",` +
-					`"sql":"SELECT threatintel.main.indicator_type('8.8.8.8') AS kind"},` +
-					`{"description":"Flag a private/reserved (RFC1918) IP that should never be sent to an external reputation feed.",` +
-					`"sql":"SELECT threatintel.main.is_private_ip('10.0.0.5') AS is_private"},` +
-					`{"description":"Enrich a single indicator against the configured reputation source, projecting the verdict fields.",` +
-					`"sql":"SELECT indicator, malicious, score, categories FROM threatintel.main.reputation('1.2.3.4')"},` +
-					`{"description":"Look up an indicator against an explicit reputation adapter with an API key, keeping only the malicious flag, score, and categories.",` +
-					`"sql":"SELECT malicious, score, categories FROM threatintel.main.reputation('evil.example.com', base_url := 'https://my-reputation-adapter.internal/reputation', api_key := 'YOUR_KEY')"}` +
-					`]`,
+				// description, with explicit projections (VGI514, no bare SELECT *).
+				// Defined in threatworker/examples.go, which also holds the composed
+				// (multi-object) examples shared with the per-object lists. The
+				// reputation examples need a live backend and are documentation only.
+				"vgi.example_queries": threatworker.SchemaExampleQueries,
 				// VGI509: guaranteed-runnable executable examples (offline-safe).
 				"vgi.executable_examples": threatworker.ExecutableExamples,
 			},

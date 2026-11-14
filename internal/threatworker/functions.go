@@ -90,6 +90,7 @@ func (f *IndicatorTypeFunction) Metadata() vgi.FunctionMetadata {
 			SQL:         "SELECT threatintel.main.indicator_type('44d88612fea8a8f36de82e1278abb02f');",
 			Description: "Classify a 32-hex-character file hash as 'md5'.",
 		},
+		triageBatchExample,
 	}
 	return vgi.FunctionMetadata{
 		Description: "Classify an indicator as ipv4/ipv6/domain/url/md5/sha1/sha256, or NULL if unrecognized",
@@ -295,6 +296,7 @@ func (f *ReputationFunction) Metadata() vgi.FunctionMetadata {
 			SQL:         "SELECT count(*) AS rows_for_unsupported FROM threatintel.main.reputation('not-an-indicator');",
 			Description: "An unsupported indicator string yields zero verdict rows (no lookup); count(*) returns 0.",
 		},
+		feedTypeCrossCheckExample,
 	}
 	return vgi.FunctionMetadata{
 		Description: "Look up one indicator against a threat-intel reputation source; returns at most one verdict row",
@@ -364,7 +366,8 @@ func (f *ReputationFunction) NewState(params *vgi.ProcessParams) (*reputationSta
 	// Offline triage: skip the lookup for unsupported indicators and for
 	// private/reserved IPs (no public-reputation budget wasted on internal
 	// hosts). Both cases yield zero rows rather than an error, so a batch
-	// LATERAL join over a column of indicators simply drops them.
+	// UNION ALL of per-indicator lookups (literal arguments only: DuckDB rejects
+	// LATERAL column parameters over a VGI table function) simply drops them.
 	if IndicatorType(args.Indicator) == "" || IsPrivateIP(args.Indicator) {
 		return &reputationState{}, nil
 	}
@@ -478,21 +481,22 @@ const indicatorTypesViewDef = `SELECT * FROM (VALUES
   ('sha256', 'SHA-256 file hash (64 hexadecimal characters)',           'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855')
 ) AS t(indicator_type, description, example)`
 
-// indicatorTypesExampleQueries is the object-level vgi.example_queries for the
-// indicator_types view (VGI502: a JSON array of {description, sql}). It CALLS
-// the view (VGI511) with an explicit column projection and ORDER BY rather than
-// a bare SELECT * (VGI514), and is fully catalog-qualified so it counts toward
-// coverage and executes under --execute.
-const indicatorTypesExampleQueries = `[
-  {
-    "description": "List every IoC type the worker recognizes, with a description and a canonical example of each.",
-    "sql": "SELECT indicator_type, description, example FROM threatintel.main.indicator_types ORDER BY indicator_type"
-  },
-  {
-    "description": "Look up the canonical example and human description for a single indicator type (sha256).",
-    "sql": "SELECT description, example FROM threatintel.main.indicator_types WHERE indicator_type = 'sha256'"
-  }
-]`
+// indicatorTypesExamples are the object-level examples for the indicator_types
+// view (VGI502: serialized as a JSON array of {description, sql}). They CALL the
+// view (VGI511) with an explicit column projection rather than a bare SELECT *
+// (VGI514), and are fully catalog-qualified so they count toward coverage and
+// execute under --execute.
+var indicatorTypesExamples = []vgi.CatalogExample{
+	{
+		Description: "List every IoC type the worker recognizes, with a description and a canonical example of each.",
+		SQL:         "SELECT indicator_type, description, example FROM threatintel.main.indicator_types ORDER BY indicator_type",
+	},
+	{
+		Description: "Look up the canonical example and human description for a single indicator type (sha256).",
+		SQL:         "SELECT description, example FROM threatintel.main.indicator_types WHERE indicator_type = 'sha256'",
+	},
+	typeCoverageExample,
+}
 
 // registerIndicatorTypesView registers the indicator_types reference view.
 func registerIndicatorTypesView(w *vgi.Worker) {
@@ -526,7 +530,7 @@ func registerIndicatorTypesView(w *vgi.Worker) {
 				"threat intel", "soc",
 			},
 		), map[string]string{
-			"vgi.example_queries": indicatorTypesExampleQueries,
+			"vgi.example_queries": exampleQueriesJSON(indicatorTypesExamples),
 			// VGI123 classifying tags MUST use BARE keys (not vgi.-namespaced),
 			// and reuse the schema's vocabulary so the facet stays a small
 			// shared set rather than a per-object value (VGI727).

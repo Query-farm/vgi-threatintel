@@ -90,3 +90,51 @@ WHERE threatintel.indicator_type(v) IS NOT NULL
   AND NOT threatintel.is_private_ip(v);
 ----
 2
+
+# ---- composed examples (examples.go): scalars + the indicator_types view ----
+
+# triageBatchSQL: 4 of the 6 indicators need a lookup (not the private IP or
+# the unrecognized string).
+query TTTTT
+WITH iocs(ioc) AS (
+  VALUES ('185.220.101.1'), ('10.0.0.5'), ('malware-c2.example'),
+         ('https://good.example/login'), ('44d88612fea8a8f36de82e1278abb02f'), ('not-an-indicator!!')
+), typed AS (
+  SELECT ioc,
+         threatintel.main.indicator_type(ioc) AS kind,
+         threatintel.main.is_private_ip(ioc) AS is_private
+  FROM iocs
+)
+SELECT typed.ioc, typed.kind, t.description, typed.is_private,
+       typed.kind IS NOT NULL AND NOT typed.is_private AS needs_lookup
+FROM typed
+LEFT JOIN threatintel.main.indicator_types AS t ON t.indicator_type = typed.kind
+ORDER BY needs_lookup DESC, typed.ioc
+----
+185.220.101.1	ipv4	IPv4 address in dotted-quad notation	false	true
+44d88612fea8a8f36de82e1278abb02f	md5	MD5 file hash (32 hexadecimal characters)	false	true
+https://good.example/login	url	Absolute HTTP or HTTPS URL	false	true
+malware-c2.example	domain	DNS domain name (hostname)	false	true
+10.0.0.5	ipv4	IPv4 address in dotted-quad notation	true	false
+not-an-indicator!!	NULL	NULL	false	false
+
+# typeCoverageSQL: every type listed, absent types count 0.
+query TI
+WITH iocs(ioc) AS (
+  VALUES ('185.220.101.1'), ('8.8.8.8'), ('10.0.0.5'), ('malware-c2.example'),
+         ('44d88612fea8a8f36de82e1278abb02f'),
+         ('e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'), ('not-an-indicator!!')
+)
+SELECT t.indicator_type, count(i.ioc) AS n_indicators
+FROM threatintel.main.indicator_types AS t
+LEFT JOIN iocs AS i ON threatintel.main.indicator_type(i.ioc) = t.indicator_type
+GROUP BY t.indicator_type
+ORDER BY t.indicator_type
+----
+domain	1
+ipv4	3
+ipv6	0
+md5	1
+sha1	0
+sha256	1
+url	0
