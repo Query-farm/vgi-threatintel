@@ -1,0 +1,71 @@
+{
+  "provenance": "All verdicts and scores are hand-invented. Reserved .example names and repeated-a hash are illustrative identifiers, not observed threats. No indicator is contacted.",
+  "score_definition": "Fixture-only 0\u2013100 ordering; not a probability or portable vendor scale.",
+  "unknown_indicator": "unknown.example",
+  "rows": [
+    {
+      "indicator": "phish.example",
+      "type": "domain",
+      "malicious": true,
+      "score": 92,
+      "categories": [
+        "phishing"
+      ],
+      "source": "invented-normalized-feed",
+      "last_seen": "2026-01-15T12:00:00Z"
+    },
+    {
+      "indicator": "loader.example",
+      "type": "domain",
+      "malicious": true,
+      "score": 78,
+      "categories": [
+        "loader"
+      ],
+      "source": "invented-normalized-feed",
+      "last_seen": "2026-01-15T12:00:00Z"
+    },
+    {
+      "indicator": "unscored.example",
+      "type": "domain",
+      "malicious": true,
+      "score": null,
+      "categories": [
+        "unscored"
+      ],
+      "source": "invented-normalized-feed",
+      "last_seen": "2026-01-15T12:00:00Z"
+    },
+    {
+      "indicator": "clean.example",
+      "type": "domain",
+      "malicious": false,
+      "score": 5,
+      "categories": [],
+      "source": "invented-normalized-feed",
+      "last_seen": "2026-01-15T12:00:00Z"
+    },
+    {
+      "indicator": "https://download.example/payload",
+      "type": "url",
+      "malicious": true,
+      "score": 88,
+      "categories": [
+        "payload"
+      ],
+      "source": "invented-normalized-feed",
+      "last_seen": "2026-01-15T12:00:00Z"
+    },
+    {
+      "indicator": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "type": "sha256",
+      "malicious": true,
+      "score": 96,
+      "categories": [
+        "synthetic-hash"
+      ],
+      "source": "invented-normalized-feed",
+      "last_seen": "2026-01-15T12:00:00Z"
+    }
+  ]
+}

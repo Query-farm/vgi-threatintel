@@ -222,3 +222,7 @@ Written by [Query.Farm](https://query.farm).
 
 Copyright 2026 Query Farm LLC - https://query.farm
 
+
+## Executable notebook
+
+[Triage, reputation and unknowns](notebooks/README.md) uses the public native release and a local synthetic normalized feed to preserve unknown verdicts and compare review thresholds in SQL.
