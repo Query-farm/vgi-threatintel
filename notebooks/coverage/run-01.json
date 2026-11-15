@@ -1,0 +1,169 @@
+{
+  "schema_version": 1,
+  "notebook_sha256": "d2145830b59812f63454ad1cb7ecc45035dd26b9e50859dc0fda49b9d8fbd7e5",
+  "catalog_sha256": "41a535a4063dffc46f305c7de28c2dcabf3478dfea4cdc8c7a84f655d7f40dab",
+  "worker_revision": "v0.4.0",
+  "status": "success",
+  "executed_at": "2026-11-15T00:20:56.568354+00:00",
+  "engine": "Haybarn2.0.0rc11 / published VGI extension",
+  "command": "uv run --locked python artifacts/execute_with_receipts.py; invokes python -m vgi_notebooks.execute 01_triage_reputation_and_unknowns.ipynb",
+  "catalog_aliases": [
+    "threatintel"
+  ],
+  "cells": [
+    {
+      "id": "parameters",
+      "status": "success",
+      "execution_count": 1,
+      "source_sha256": "6b91b1ed052c4fa1a24b68ce8d8f96916189d76e79c5614c2d5947a0fd2e3852",
+      "outputs_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "id": "bootstrap",
+      "status": "success",
+      "execution_count": 2,
+      "source_sha256": "70c649c5d8ae11629e4cd77b6074a58db7b0a42d17417eb707f9da7f5fe32e0f",
+      "outputs_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "id": "setup",
+      "status": "success",
+      "execution_count": 3,
+      "source_sha256": "3f94a89008d51921f615bc86ceb58838bb3982186ddca8053354b13c119146b8",
+      "outputs_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "id": "connection",
+      "status": "success",
+      "execution_count": 4,
+      "source_sha256": "a4ad0ec91dc32340a9354fee32654b45f2274ec604c9843bb378f62cf9df8cf5",
+      "outputs_sha256": "fdb4166dc3676d819413bf960c5f84ffdcb993bd40da932946d3156a193403ba"
+    },
+    {
+      "id": "triage-query",
+      "status": "success",
+      "execution_count": 5,
+      "source_sha256": "f3376df66c045df1309ad6307b410cdef1f8132bfdd432f508294a82337278be",
+      "outputs_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "id": "triage-table",
+      "status": "success",
+      "execution_count": 6,
+      "source_sha256": "4cb9feac1db1d9e74a60ff09f2dc83375894a9df7170cb8cec06a004a41b1eba",
+      "outputs_sha256": "e51bf36f3966839ac4b95aa61e60831466f7ac78ab407ec31474e9c791b14e6c"
+    },
+    {
+      "id": "registry-query",
+      "status": "success",
+      "execution_count": 7,
+      "source_sha256": "c3fcd6aa81e8df9ea1bbfb8355d13a6e6b6168e57b21b34dcc09e08bf2c296e1",
+      "outputs_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "id": "registry-chart",
+      "status": "success",
+      "execution_count": 8,
+      "source_sha256": "75f1f12120161345b4e659d814d8ddc2bcebedd8a52bb8d1c79c20c8a8400bf3",
+      "outputs_sha256": "baa6d7c5ae1f6540c842a5b902592a2b2ec69005a5d68cfa2e533a400d742e99"
+    },
+    {
+      "id": "lookup-query",
+      "status": "success",
+      "execution_count": 9,
+      "source_sha256": "95813b43751ed5a6d4e99dbeb9b91e4b30d88281ba3aad6d3a5ee2e43a405539",
+      "outputs_sha256": "60494032643f6d11089f58d809a9ebc810b10365649f50813d958dff52cacccf"
+    },
+    {
+      "id": "reputation-query",
+      "status": "success",
+      "execution_count": 10,
+      "source_sha256": "d53f31e01edb08c233ac4f653e7e99e75e3f52eeb4e76feb9b098e64810ad498",
+      "outputs_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "id": "reputation-table",
+      "status": "success",
+      "execution_count": 11,
+      "source_sha256": "26f171924b673f630e4fd940734a74cc6409e91b17ab261993aa2912ac313978",
+      "outputs_sha256": "a5a0c14b10a3c35e2452f0bd443068be3f41f878e88e9f7ba00b4135b0998c05"
+    },
+    {
+      "id": "fingerprint-query",
+      "status": "success",
+      "execution_count": 12,
+      "source_sha256": "d8e7519c7b6a5aa0360e75ceb896dd96e2610ab824d1e035d26ac013baac4533",
+      "outputs_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "id": "fingerprint-finding",
+      "status": "success",
+      "execution_count": 13,
+      "source_sha256": "98579a921759cae3af972b37ff9704da9f7e9bea76f02ac9f2e842a286065dfe",
+      "outputs_sha256": "899cda4c97df7dd41a58bf85104f980822efdadc850fec4383cc3316e3fa8e76"
+    },
+    {
+      "id": "join-query",
+      "status": "success",
+      "execution_count": 14,
+      "source_sha256": "e8b208ddf803807f3d44da362dc2900702be14ddc4d9f7c25c2d6e0b95a0467e",
+      "outputs_sha256": "f03cfe7aac280179327ff095c5e3086255dc0f1add6fab5a3dcdb048c5dddafe"
+    },
+    {
+      "id": "counts-query",
+      "status": "success",
+      "execution_count": 15,
+      "source_sha256": "42a20146a7bed8a2cb28e0bc6289e0f191673ed11b280ff0e1a0eed96c3dc477",
+      "outputs_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "id": "scored-query",
+      "status": "success",
+      "execution_count": 16,
+      "source_sha256": "6129a8b1e58672c7828a4cb4e334cd874e8b87a3ab4ff4cfbf173d5b15bac004",
+      "outputs_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "id": "coverage-chart",
+      "status": "success",
+      "execution_count": 17,
+      "source_sha256": "cafc81b84ac73dfbc1fe684e72e11637abef273df6493dfa55a07e29cb02552b",
+      "outputs_sha256": "759a5406e8ee46d45b00783acc79269f2ec13e59b3f50990118a70c02e4b3017"
+    },
+    {
+      "id": "scores-chart",
+      "status": "success",
+      "execution_count": 18,
+      "source_sha256": "e784b2c2e54723995c5e720c695f13dd5d4258358ffd69430229b703ee0e2f33",
+      "outputs_sha256": "07fb9e0cfdc4a478492fa0a7430876881144895081da12b5f2a0bf4b8a72f9f8"
+    },
+    {
+      "id": "queue-finding",
+      "status": "success",
+      "execution_count": 19,
+      "source_sha256": "97f52747e4429749c8776f4ee3afb269389323fbc9a61dbb3838baa956650813",
+      "outputs_sha256": "dd3b18dd47b17f30a1b9740c7a62915727f4f025bed301aca60db8dd7c9632d5"
+    },
+    {
+      "id": "checks-query",
+      "status": "success",
+      "execution_count": 20,
+      "source_sha256": "0659ac0c3ce05b35cb9b1146b5bcebae13772be0186cbc145044578f9c3b6a6c",
+      "outputs_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "id": "checks-finding",
+      "status": "success",
+      "execution_count": 21,
+      "source_sha256": "8df84dff723fb11ef9e2d03146ef0933c03b1fee85333e877e0d4c50af03be59",
+      "outputs_sha256": "9cca7164934b83c979a0ca69283d72f7f9de20969480b4d6816b05b2fe1a37ce"
+    },
+    {
+      "id": "cleanup",
+      "status": "success",
+      "execution_count": 22,
+      "source_sha256": "63fa9b48eea27c0e48461de93963c9a58936b88a5a69457e243f4adec2f8d7c4",
+      "outputs_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    }
+  ]
+}

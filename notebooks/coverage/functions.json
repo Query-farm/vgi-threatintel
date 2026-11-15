@@ -1,0 +1,156 @@
+{
+  "query": "SELECT * FROM duckdb_functions() WHERE database_name='threatintel' ORDER BY schema_name,function_name",
+  "captured_at": "2026-11-15T00:15:31.378314+00:00",
+  "columns": [
+    "database_name",
+    "database_oid",
+    "schema_name",
+    "function_name",
+    "alias_of",
+    "function_type",
+    "description",
+    "comment",
+    "tags",
+    "return_type",
+    "parameters",
+    "parameter_types",
+    "varargs",
+    "macro_definition",
+    "has_side_effects",
+    "internal",
+    "extension_name",
+    "function_oid",
+    "examples",
+    "stability",
+    "categories"
+  ],
+  "rows": [
+    [
+      "threatintel",
+      "22595",
+      "main",
+      "indicator_type",
+      null,
+      "scalar",
+      "Classify an indicator as ipv4/ipv6/domain/url/md5/sha1/sha256, or NULL if unrecognized",
+      null,
+      {
+        "vgi.category": "Offline Triage",
+        "vgi.doc_llm": "Classify a single cyber indicator (IoC) string into its type: ipv4, ipv6, domain, url, md5, sha1, or sha256. Returns NULL for an unrecognized or NULL input. Pure and offline (no network); use it to triage and route a column of indicators before spending reputation-API budget.",
+        "vgi.doc_md": "Classify an indicator string as `ipv4`/`ipv6`/`domain`/`url`/`md5`/`sha1`/`sha256`, or `NULL` if unrecognized. Offline and deterministic.",
+        "vgi.example_queries": "[{\"description\":\"Classify an IPv4 address; returns 'ipv4'.\",\"sql\":\"SELECT threatintel.main.indicator_type('8.8.8.8');\"},{\"description\":\"Classify a 32-hex-character file hash as 'md5'.\",\"sql\":\"SELECT threatintel.main.indicator_type('44d88612fea8a8f36de82e1278abb02f');\"}]",
+        "vgi.keywords": "[\"indicator type\",\"ioc\",\"classify\",\"ipv4\",\"ipv6\",\"domain\",\"url\",\"hash\",\"md5\",\"sha1\",\"sha256\",\"triage\",\"threat intel\",\"threat hunting\",\"soc\"]",
+        "vgi.title": "Classify Indicator Type"
+      },
+      "VARCHAR",
+      [
+        "value"
+      ],
+      [
+        "VARCHAR"
+      ],
+      null,
+      null,
+      false,
+      true,
+      null,
+      22729,
+      [
+        "SELECT threatintel.main.indicator_type('8.8.8.8');",
+        "SELECT threatintel.main.indicator_type('44d88612fea8a8f36de82e1278abb02f');"
+      ],
+      "CONSISTENT",
+      [
+        "threatintel",
+        "ioc"
+      ]
+    ],
+    [
+      "threatintel",
+      "22595",
+      "main",
+      "is_private_ip",
+      null,
+      "scalar",
+      "Report whether an indicator is a private/reserved IP (RFC1918/loopback/etc.); false for non-IPs",
+      null,
+      {
+        "vgi.category": "Offline Triage",
+        "vgi.doc_llm": "Report whether an indicator is an IP literal in a private or reserved range (RFC1918, loopback, link-local, CGNAT, documentation/TEST-NET, multicast, IPv6 ULA, etc.). Returns false for any non-IP input. Pure and offline; gate a public reputation lookup on NOT is_private_ip(x) so internal hosts don't waste API budget.",
+        "vgi.doc_md": "Report whether an indicator is a private/reserved IP (RFC1918/loopback/CGNAT/TEST-NET/\u2026); `false` for non-IPs. Offline.",
+        "vgi.example_queries": "[{\"description\":\"An RFC1918 address is private; returns true.\",\"sql\":\"SELECT threatintel.main.is_private_ip('10.0.0.5');\"},{\"description\":\"A routable public address; returns false (safe to look up).\",\"sql\":\"SELECT threatintel.main.is_private_ip('8.8.8.8');\"}]",
+        "vgi.keywords": "[\"private ip\",\"reserved ip\",\"rfc1918\",\"loopback\",\"link-local\",\"cgnat\",\"test-net\",\"documentation range\",\"internal host\",\"triage\",\"ip filter\",\"threat intel\",\"soc\"]",
+        "vgi.title": "Is Private Reserved IP"
+      },
+      "BOOLEAN",
+      [
+        "value"
+      ],
+      [
+        "VARCHAR"
+      ],
+      null,
+      null,
+      false,
+      true,
+      null,
+      22730,
+      [
+        "SELECT threatintel.main.is_private_ip('10.0.0.5');",
+        "SELECT threatintel.main.is_private_ip('8.8.8.8');"
+      ],
+      "CONSISTENT",
+      [
+        "threatintel",
+        "ioc"
+      ]
+    ],
+    [
+      "threatintel",
+      "22595",
+      "main",
+      "reputation",
+      null,
+      "table",
+      "Look up one indicator against a threat-intel reputation source; returns at most one verdict row",
+      null,
+      {
+        "vgi.category": "Reputation Enrichment",
+        "vgi.doc_llm": "Look up one cyber indicator (IP, domain, URL, or file hash) against a threat-intel reputation source and return at most one verdict row: indicator, type, malicious flag, score, categories, source, and last_seen. Private/reserved IPs and unsupported strings are triaged to zero rows before any network call; an unknown indicator (source 404) also yields zero rows. The source is a normalized reputation endpoint selected with the base_url option (api_key / timeout_ms also named).",
+        "vgi.doc_md": "Look up an indicator against a threat-intel reputation source; returns at most one verdict row (`malicious`, `score`, `categories`, `source`, `last_seen`). Configure the feed with `base_url` (+ `api_key`).",
+        "vgi.example_queries": "[{\"description\":\"A private/reserved IP is triaged to zero verdict rows before any network call (no public-reputation budget spent on internal hosts); count(*) returns 0.\",\"sql\":\"SELECT count(*) AS rows_for_private_ip FROM threatintel.main.reputation('10.0.0.5');\"},{\"description\":\"An unsupported indicator string yields zero verdict rows (no lookup); count(*) returns 0.\",\"sql\":\"SELECT count(*) AS rows_for_unsupported FROM threatintel.main.reputation('not-an-indicator');\"}]",
+        "vgi.keywords": "[\"reputation\",\"threat intel\",\"ioc lookup\",\"indicator enrichment\",\"malicious\",\"threat score\",\"categories\",\"ip reputation\",\"domain reputation\",\"url\",\"file hash\",\"otx\",\"urlhaus\",\"threatfox\",\"virustotal\",\"soc\",\"threat hunting\"]",
+        "vgi.result_columns_schema": "[{\"name\":\"indicator\",\"type\":\"VARCHAR\",\"description\":\"The looked-up indicator, echoed back.\"},{\"name\":\"type\",\"type\":\"VARCHAR\",\"description\":\"IoC type as reported by the source (ipv4/ipv6/domain/url/md5/sha1/sha256).\"},{\"name\":\"malicious\",\"type\":\"BOOLEAN\",\"description\":\"Whether the source classifies the indicator as malicious.\"},{\"name\":\"score\",\"type\":\"DOUBLE\",\"description\":\"Reputation/threat score, or NULL when the source reports none.\"},{\"name\":\"categories\",\"type\":\"VARCHAR[]\",\"description\":\"Threat categories the source assigned (for example malware, phishing, or c2).\"},{\"name\":\"source\",\"type\":\"VARCHAR\",\"description\":\"Name of the reputation feed that produced the verdict.\"},{\"name\":\"last_seen\",\"type\":\"VARCHAR\",\"description\":\"When the source last observed the indicator (ISO-8601 string).\"}]",
+        "vgi.title": "Indicator Reputation Lookup"
+      },
+      null,
+      [
+        "indicator",
+        "api_key",
+        "timeout_ms",
+        "base_url"
+      ],
+      [
+        "VARCHAR",
+        "VARCHAR",
+        "BIGINT",
+        "VARCHAR"
+      ],
+      null,
+      null,
+      null,
+      true,
+      null,
+      22731,
+      [
+        "SELECT count(*) AS rows_for_private_ip FROM threatintel.main.reputation('10.0.0.5');",
+        "SELECT count(*) AS rows_for_unsupported FROM threatintel.main.reputation('not-an-indicator');"
+      ],
+      null,
+      [
+        "threatintel",
+        "reputation"
+      ]
+    ]
+  ]
+}

@@ -1,46 +1,106 @@
-# Threat-intelligence triage notebook
+# Threat Intelligence notebooks
 
-[Triage, reputation and unknowns](01_triage_reputation_and_unknowns.ipynb) classifies invented event indicators, requests distinct eligible reputations, and keeps missing verdicts separate from negative verdicts and positive verdicts without scores. The experiment changes only a review-queue threshold.
+[An unknown reputation is not a negative verdict](01_triage_reputation_and_unknowns.ipynb)
+classifies an authored 12-event stream, checks which supported types are represented,
+retrieves six invented verdicts and one unknown result through a loopback feed,
+and builds a review queue without replacing missing measurements with zero.
 
-## Run from this directory
+The notebook runs the real **native v0.4.0 worker**. All reputation values are
+**synthetic**: `.example` names, a repeated-character hash, private/documentation
+addresses and malformed/null controls. No listed indicator is contacted, resolved,
+downloaded or scanned. `last_seen` is an authored fixture timestamp, not a real
+observation. The score is fixture-only ordering, not a probability, risk estimate,
+calibrated vendor scale, detection recall or evidence of safety.
 
-Install [uv](https://docs.astral.sh/uv/). The notebook uses Python 3.13 or 3.14 and a locked Haybarn 2.0.0rc11 environment. First use needs network access for Python dependencies, the published VGI extension and the pinned worker release. Subsequent analysis uses only a disposable local fixture. No Go compiler, worker checkout or locally built binary is needed; this directory can be copied alone.
+## Run locally or in Colab
 
-```bash
-uv sync --frozen
-uv run --frozen python execute.py
+Open the notebook's Colab link and Run all. Its short bootstrap installs only the
+base shared package and retrieves three immutable, SHA-256-verified companions.
+A fresh notebook-only directory works; no worker checkout or source build is used.
+Local publication uses the locked runner extra:
+
+```sh
+cd notebooks
+uv sync --locked
+uv run --locked vgi-notebooks 01_triage_reputation_and_unknowns.ipynb
+uv run --locked python -m ipykernel install --user --name vgi-threatintel-notebooks --display-name 'VGI Threat Intelligence notebooks'
 ```
 
-Visible SQL attaches `github-auto://Query-farm/vgi-threatintel@v0.4.0`. Actual release startup was verified on macOS arm64. Published assets also cover Linux amd64/arm64 and Windows amd64, which were not executed here. Rerun the default and experiment after updating the release or environment pin.
+Choose that kernel when opening a local notebook. Python 3.11–3.14 is supported by
+this environment; the fresh preloaded-kernel check uses Python 3.12. Dependencies,
+companions and the native binary need network access on first use. The analytical
+requests go only to an ephemeral `127.0.0.1` HTTP server. Local loopback sockets must
+be allowed. A compatible preloaded kernel check is distinct from operating hosted
+Colab's UI.
 
-For interactive use, register this environment and select it in Jupyter:
+Visible SQL starts the published platform release:
 
-```bash
-uv run --frozen python -m ipykernel install --user --name vgi-threatintel-notebooks --display-name 'Python (threatintel notebooks)'
+```sql
+INSTALL vgi FROM community;
+LOAD vgi;
+ATTACH 'threatintel' (
+ TYPE vgi, LOCATION 'github-auto://Query-farm/vgi-threatintel@v0.4.0'
+);
 ```
 
-Restart and run all after changing `MIN_SCORE`. Parameters, connection SQL and analytical SQL are visible; Python setup, plotting, interpretation source and cleanup are folded. The runner uses a temporary kernel and this directory as cwd, writes only successful outputs, and rejects unknown parameters, overrides without a separate destination, and source-directory output destinations.
+The shared connection creates an empty temporary SQL-secret directory with
+persistent secrets disabled before ATTACH, and verifies it stays empty. The worker's
+supported `base_url` argument explicitly selects the local fixture; no API key is
+supplied. Its default endpoint is a placeholder, not a live provider. Real providers
+require a separate normalized adapter and their own credentials; this notebook does
+not attempt that setup or make a live threat-feed request.
 
-## Synthetic data and supported source interface
+## Change one policy parameter
 
-[feed.json](fixtures/feed.json) contains six hand-invented normalized verdicts with fixed `last_seen` timestamps of 2026-01-15 12:00 UTC. Reserved `.example` names and a repeated-character SHA-256 are illustrative identifiers, not observed threats. Twelve SQL event rows include a duplicate, a private address, a documentation-range address, malformed text and a null input. No listed indicator is contacted or scanned.
+`MIN_SCORE=70` is an inclusive score cutoff applied only to positive, scored
+verdicts. Save the **90** experiment separately:
 
-[local_feed.py](local_feed.py) serves the worker's documented normalized HTTP interface on loopback. `base_url` points explicitly at this local fixture. Unknown `unknown.example` returns HTTP 404; other rows deliberately include positive/negative verdicts and a null score. This is a synthetic fixture, not captured provider data. It needs no key and has no live mode. The worker's default endpoint is a placeholder, not a public feed. Real providers require their own normalized adapter, credentials and terms; none is used here.
-
-The two offline scalars are actual worker calls. `is_private_ip` recognizes private/reserved **IP literals**; it does not resolve domains or inspect addresses inside URLs. False for a non-IP does not establish safety. Indicator typing is lexical and does not validate content. Recognized-type and private-IP tests are combined before lookup.
-
-This release requires literal table-function arguments; it does not accept a LATERAL indicator column. Seven explicit calls match the distinct eligible inputs and are materialized once with visible CTAS before display queries. A left join preserves original event IDs, duplicate observations and nulls. Provider `malicious` stays distinct from the local review policy. HTTP errors other than unknown/404 must surface as errors, not negative verdicts.
-
-## Focused experiment
-
-```bash
-uv run --frozen python execute.py --parameters '{"MIN_SCORE":90}' --output-dir validation/stricter-threshold
+```sh
+uv run --locked vgi-notebooks 01_triage_reputation_and_unknowns.ipynb \
+  --parameters '{"MIN_SCORE":90}' --output-dir validation/score-90
 ```
 
-Default `MIN_SCORE` is 70; accepted integers are 0–100. A review candidate needs both a positive verdict and a nonnull score at or above the threshold. The fixture score is an invented 0–100 ordering, not a probability or portable vendor scale. Raising the threshold to 90 removes positive scored indicators in `[70,90)` from the queue. Compare both event counts and distinct indicators; the duplicate contributes more than once to event volume. Raw provider verdicts, scores, unknowns and unscored positives must remain unchanged. Restore 70 for the baseline.
+At 70 the queue has five event rows / four distinct indicators; at 90 it has three
+rows / two indicators. Raw verdicts, scores, registry counts, one unknown verdict and
+one unscored positive remain unchanged. The two removed candidates reflect a local
+rule change, not improved intelligence. Three charts distinguish event counts,
+distinct eligible indicators, and the scored subset. Zero-count registry types stay
+visible; malformed/null inputs are accounted for separately.
 
-The coverage chart retains every event and reason; the score chart includes only distinct indicators with numeric scores. Null scores are not plotted as zero. Twelve SQL invariants cover identities, type agreement, eligibility, missing values, thresholds and accounting; journal checks confirm that only the eligible indicator set reaches the local endpoint. These checks demonstrate integration and data handling, not detection accuracy or true risk.
+SQL materializes seven explicit literal reputation calls once before captured
+display. The worker does not support LATERAL column arguments here. A request audit
+requires exactly one GET per distinct eligible indicator: six HTTP 200 and one
+HTTP 404. A 404 means no verdict, while other HTTP failures stop execution. The
+notebook has 15 SQL checks plus request-count and complete-population assertions.
+The runner rejects parameter overrides without a separate destination and protects
+the saved default on failure.
 
-Saved outputs include both charts. Logs, chart PNGs and experiment copies are ignored under `validation/`; experiments include branding, fixtures, helpers and environment companions. [STANDARD.md](STANDARD.md) records presentation conventions.
+## Coverage and validation
 
-Source checks passed: 20 Go tests, `go build ./...`, `go vet ./...`, clean `gofmt -l`, and 87 SQL assertions in two cases using the supported Haybarn unittest runner with the repository's mock feed. Metadata lint reports 100/100 L2 with zero findings. Notebook Ruff/format and structural checks pass. No engine rebuild, worker change or root dependency modification was required.
+[coverage.json](coverage.json) links complete released/current catalog evidence,
+visible SQL, successful outputs, interpretations and execution receipts.
+The actual release exposes **four logical surfaces**: `indicator_type`,
+`is_private_ip`, `reputation`, and the `indicator_types` reference view. All four
+have meaningful executed coverage. No tables or COPY formats are hidden from the
+inventory. Optional authentication on `reputation` remains in the denominator.
+
+The release tag peels to `b498cf72f83be638afc08e94dd06251b987f2e53`.
+Current source `ea201500635a58b771c76c69ffc001865e2602d2` changes examples and comments
+only; registration, argument/output schemas, processing and Go dependencies match.
+Coverage is **4/4 exact release runtime**, **4/4 current compatible interface** and
+**0 current-revision runtime executions**. No current worker was rebuilt.
+The proper title/subtitle come from the actual catalog's `vgi.title`/`vgi.subtitle`.
+
+The unchanged worker reuses [green source CI](https://github.com/Query-farm/vgi-threatintel/actions/runs/43584126208).
+Notebook validation includes default/experiment execution, an isolated fresh
+preloaded-kernel bootstrap, three runner guards, catalog/coverage validation,
+figure review and public SVG byte checks. Native-release portability was checked
+on macOS ARM64; other platform assets and hosted Colab were not manually operated.
+
+The [shared standard](https://github.com/Query-farm/vgi-example-notebooks/blob/main/docs/standard.md)
+defines SVG, branding and execution conventions. Charts are native SVG in Jupyter
+and Colab; committed content-addressed SVG image links render them on GitHub.
+Generated review PNGs, logs and experiment copies remain ignored. `local_feed.py`
+serves the unchanged authored `fixtures/feed.json`; `threatintel_example.py` only
+plots SQL-returned data. To upgrade a worker/shared release, recheck catalogs,
+fixture semantics, default/experiment results and portable setup before changing pins.

@@ -1,0 +1,70 @@
+{
+  "query": "DESCRIBE SELECT * FROM threatintel.main.reputation('10.0.0.5')",
+  "captured_at": "2026-11-15T00:15:31.407461+00:00",
+  "columns": [
+    "column_name",
+    "column_type",
+    "null",
+    "key",
+    "default",
+    "extra"
+  ],
+  "rows": [
+    [
+      "indicator",
+      "VARCHAR",
+      "YES",
+      null,
+      null,
+      null
+    ],
+    [
+      "type",
+      "VARCHAR",
+      "YES",
+      null,
+      null,
+      null
+    ],
+    [
+      "malicious",
+      "BOOLEAN",
+      "YES",
+      null,
+      null,
+      null
+    ],
+    [
+      "score",
+      "DOUBLE",
+      "YES",
+      null,
+      null,
+      null
+    ],
+    [
+      "categories",
+      "VARCHAR[]",
+      "YES",
+      null,
+      null,
+      null
+    ],
+    [
+      "source",
+      "VARCHAR",
+      "YES",
+      null,
+      null,
+      null
+    ],
+    [
+      "last_seen",
+      "VARCHAR",
+      "YES",
+      null,
+      null,
+      null
+    ]
+  ]
+}

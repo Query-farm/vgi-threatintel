@@ -1,0 +1,107 @@
+{
+  "schema_version": 1,
+  "repository": "Query-farm/vgi-threatintel",
+  "revision": "v0.4.0",
+  "captured_at": "2026-11-15T00:15:31.378314+00:00",
+  "default_schema": "main",
+  "scope": "all_public_functions_and_tables",
+  "complete": true,
+  "evidence": [
+    {
+      "path": "coverage/arguments.json",
+      "sha256": "3581dd3f78dd9c0fbaef35a2837aed7da353c6fb6de06869d0876a1aa94be33c",
+      "description": "Complete actual native release functions/arguments/view/output columns and reviewed current source interface."
+    },
+    {
+      "path": "coverage/catalog-metadata.json",
+      "sha256": "01a15dfc2780521ec81567f09b99855f92c0bf6b83be13c23e9e29ed7fa8a151",
+      "description": "Complete actual native release functions/arguments/view/output columns and reviewed current source interface."
+    },
+    {
+      "path": "coverage/copy-formats.json",
+      "sha256": "2bb4972d4f24430f0e007e3ddfe6d6ac81c0b31a0e6a4f9cf6a16de527e71509",
+      "description": "Complete actual native release functions/arguments/view/output columns and reviewed current source interface."
+    },
+    {
+      "path": "coverage/functions.json",
+      "sha256": "ea431c229218d9d1a640c58111029e85264df5ab8fd5ffbc066104c3662a3edc",
+      "description": "Complete actual native release functions/arguments/view/output columns and reviewed current source interface."
+    },
+    {
+      "path": "coverage/indicator_types-columns.json",
+      "sha256": "a8dab1ac9ee005058b1325d6a988896365d97482755be0318de851877bc1ea5f",
+      "description": "Complete actual native release functions/arguments/view/output columns and reviewed current source interface."
+    },
+    {
+      "path": "coverage/indicator_types.json",
+      "sha256": "397388762bd298ecf8d54e4ecb70a1a157157d21fa8d1a98d6f1c90bf730b323",
+      "description": "Complete actual native release functions/arguments/view/output columns and reviewed current source interface."
+    },
+    {
+      "path": "coverage/reputation-columns.json",
+      "sha256": "2a0088269ece27ebb5e93b2f5d5fbe7de58cc879397515decc4c35ee05f48e36",
+      "description": "Complete actual native release functions/arguments/view/output columns and reviewed current source interface."
+    },
+    {
+      "path": "coverage/source-compatibility.json",
+      "sha256": "d05d1a2d2d2b8847dcf59e8bdf0807f7c2fe1f6d7c46f510e6b95984e58138e3",
+      "description": "Complete actual native release functions/arguments/view/output columns and reviewed current source interface."
+    },
+    {
+      "path": "coverage/tables.json",
+      "sha256": "0cefb3671137d75fd108068b93c57a73e3f07a3b7aade1fa98103f8f4605ac0c",
+      "description": "Complete actual native release functions/arguments/view/output columns and reviewed current source interface."
+    },
+    {
+      "path": "coverage/views.json",
+      "sha256": "60a7d91e10211566c196e4a9e8028cab95268fa551c724aae43fe84321825f4a",
+      "description": "Complete actual native release functions/arguments/view/output columns and reviewed current source interface."
+    }
+  ],
+  "objects": [
+    {
+      "schema": "main",
+      "name": "indicator_type",
+      "kind": "function",
+      "authentication": "none",
+      "access": "read",
+      "signatures": [
+        "indicator_type(value VARCHAR) -> VARCHAR"
+      ]
+    },
+    {
+      "schema": "main",
+      "name": "is_private_ip",
+      "kind": "function",
+      "authentication": "none",
+      "access": "read",
+      "signatures": [
+        "is_private_ip(value VARCHAR) -> BOOLEAN"
+      ]
+    },
+    {
+      "schema": "main",
+      "name": "reputation",
+      "kind": "function",
+      "authentication": "optional",
+      "access": "read",
+      "signatures": [
+        "reputation(indicator VARCHAR, api_key VARCHAR, timeout_ms BIGINT, base_url VARCHAR) -> TABLE(indicator VARCHAR, type VARCHAR, malicious BOOLEAN, score DOUBLE, categories VARCHAR[], source VARCHAR, last_seen VARCHAR)"
+      ]
+    },
+    {
+      "schema": "main",
+      "name": "indicator_types",
+      "kind": "table",
+      "authentication": "none",
+      "access": "read",
+      "signatures": [
+        "VIEW(indicator_type VARCHAR, description VARCHAR, example VARCHAR)"
+      ],
+      "access_kind": "view"
+    }
+  ],
+  "launch": "github-auto://Query-farm/vgi-threatintel@v0.4.0",
+  "runtime": "Haybarn2.0.0rc11",
+  "review_notes": "Complete fixed catalog: two offline scalar functions, one normalized-feed table function, and one reference view. Optional authenticated reputation is included; the notebook exercises its supported loopback endpoint with invented responses and no key. Current source adds composed SQL examples and agent tasks, refactors example metadata and corrects a LATERAL comment. Function registration, arguments, output schemas, indicator classification, reserved-IP ranges, reputation request/mapping/emit implementation and root dependencies are unchanged. Actual release catalog plus reviewed source diff establish matching current interface; current source is not built or run."
+}

@@ -1,0 +1,195 @@
+{
+  "schema_version": 1,
+  "catalogs": {
+    "released": {
+      "path": "coverage/catalog-released.json",
+      "sha256": "41a535a4063dffc46f305c7de28c2dcabf3478dfea4cdc8c7a84f655d7f40dab",
+      "review": {
+        "status": "approved",
+        "reviewer": "Codex /root/notebooks_earthquakes",
+        "reviewed_at": "2026-11-15T00:21:13.298821+00:00",
+        "catalog_sha256": "41a535a4063dffc46f305c7de28c2dcabf3478dfea4cdc8c7a84f655d7f40dab",
+        "notes": "Complete native release catalog:3functions+1referenceview=4logical surfaces;0tables/COPY. Full arguments and output columns retained. Optional authenticated reputation remains included. Current source changes examples/comments only; runtime processing, signatures and dependencies unchanged. Executed runtime is v0.4.0; current evidence is reviewed interface compatibility."
+      }
+    },
+    "current": {
+      "path": "coverage/catalog-current.json",
+      "sha256": "72aaf3f7bbf1fc220c2281fed6aa4639f1e4b3d1c326df89cc978c6b66aa3c58",
+      "review": {
+        "status": "approved",
+        "reviewer": "Codex /root/notebooks_earthquakes",
+        "reviewed_at": "2026-11-15T00:21:13.298821+00:00",
+        "catalog_sha256": "72aaf3f7bbf1fc220c2281fed6aa4639f1e4b3d1c326df89cc978c6b66aa3c58",
+        "notes": "Complete native release catalog:3functions+1referenceview=4logical surfaces;0tables/COPY. Full arguments and output columns retained. Optional authenticated reputation remains included. Current source changes examples/comments only; runtime processing, signatures and dependencies unchanged. Executed runtime is v0.4.0; current evidence is reviewed interface compatibility."
+      }
+    }
+  },
+  "notebooks": [
+    {
+      "path": "01_triage_reputation_and_unknowns.ipynb",
+      "sha256": "d2145830b59812f63454ad1cb7ecc45035dd26b9e50859dc0fda49b9d8fbd7e5",
+      "execution": {
+        "path": "coverage/run-01.json",
+        "sha256": "1275712b39148bc58e901398807186a7e349ce80608d43539873b7459f2f1c1a"
+      }
+    }
+  ],
+  "examples": [
+    {
+      "object": {
+        "schema": "main",
+        "name": "indicator_type"
+      },
+      "notebook": "01_triage_reputation_and_unknowns.ipynb",
+      "sql": [
+        {
+          "cell": "connection",
+          "reference": "threatintel.main.indicator_type"
+        }
+      ],
+      "narrative_cells": [
+        "question",
+        "classify-story",
+        "registry-story"
+      ],
+      "result_cells": [
+        "triage-table",
+        "registry-chart",
+        "checks-finding"
+      ],
+      "interpretation_cells": [
+        "registry-chart",
+        "classify-story"
+      ],
+      "review": {
+        "status": "approved",
+        "reviewer": "Codex /root/notebooks_earthquakes",
+        "reviewed_at": "2026-11-15T00:21:13.298821+00:00",
+        "notebook_sha256": "d2145830b59812f63454ad1cb7ecc45035dd26b9e50859dc0fda49b9d8fbd7e5",
+        "catalog_sha256": [
+          "41a535a4063dffc46f305c7de28c2dcabf3478dfea4cdc8c7a84f655d7f40dab",
+          "72aaf3f7bbf1fc220c2281fed6aa4639f1e4b3d1c326df89cc978c6b66aa3c58"
+        ],
+        "purpose": "Classify the complete event stream before deduplicating eligible lookups.",
+        "finding": "Ten typed events occupy four of seven supported types; malformed and NULL controls remain distinct untyped rows. Classification is lexical; no DNS resolution, defanging or file inspection is implied."
+      }
+    },
+    {
+      "object": {
+        "schema": "main",
+        "name": "is_private_ip"
+      },
+      "notebook": "01_triage_reputation_and_unknowns.ipynb",
+      "sql": [
+        {
+          "cell": "connection",
+          "reference": "threatintel.main.is_private_ip"
+        }
+      ],
+      "narrative_cells": [
+        "classify-story",
+        "lookup-story"
+      ],
+      "result_cells": [
+        "triage-table",
+        "checks-finding"
+      ],
+      "interpretation_cells": [
+        "classify-story",
+        "checks-finding"
+      ],
+      "review": {
+        "status": "approved",
+        "reviewer": "Codex /root/notebooks_earthquakes",
+        "reviewed_at": "2026-11-15T00:21:13.298821+00:00",
+        "notebook_sha256": "d2145830b59812f63454ad1cb7ecc45035dd26b9e50859dc0fda49b9d8fbd7e5",
+        "catalog_sha256": [
+          "41a535a4063dffc46f305c7de28c2dcabf3478dfea4cdc8c7a84f655d7f40dab",
+          "72aaf3f7bbf1fc220c2281fed6aa4639f1e4b3d1c326df89cc978c6b66aa3c58"
+        ],
+        "purpose": "Exclude private/reserved IP literals from the lookup population without treating false as a safety verdict.",
+        "finding": "Private10.0.0.5 and documentation198.51.100.7 are excluded. Non-IP false requires the separate recognized-type gate. Exact loopback journal contains no request for either IP or untyped controls."
+      }
+    },
+    {
+      "object": {
+        "schema": "main",
+        "name": "indicator_types"
+      },
+      "notebook": "01_triage_reputation_and_unknowns.ipynb",
+      "sql": [
+        {
+          "cell": "registry-query",
+          "reference": "threatintel.main.indicator_types"
+        }
+      ],
+      "narrative_cells": [
+        "registry-story"
+      ],
+      "result_cells": [
+        "registry-chart",
+        "checks-finding"
+      ],
+      "interpretation_cells": [
+        "registry-chart",
+        "registry-story"
+      ],
+      "review": {
+        "status": "approved",
+        "reviewer": "Codex /root/notebooks_earthquakes",
+        "reviewed_at": "2026-11-15T00:21:13.298821+00:00",
+        "notebook_sha256": "d2145830b59812f63454ad1cb7ecc45035dd26b9e50859dc0fda49b9d8fbd7e5",
+        "catalog_sha256": [
+          "41a535a4063dffc46f305c7de28c2dcabf3478dfea4cdc8c7a84f655d7f40dab",
+          "72aaf3f7bbf1fc220c2281fed6aa4639f1e4b3d1c326df89cc978c6b66aa3c58"
+        ],
+        "purpose": "Measure sample representation against the complete supported-type vocabulary, retaining zero-count types.",
+        "finding": "Seven registry rows retain absentIPv6/MD5/SHA1 as zero. Ten typed events plus two untyped events reconcile to12; distinct eligible counts reconcile to7. Domain6events/5eligible and IPv4twoevents/zeroeligible distinguish duplication and triage."
+      }
+    },
+    {
+      "object": {
+        "schema": "main",
+        "name": "reputation"
+      },
+      "notebook": "01_triage_reputation_and_unknowns.ipynb",
+      "sql": [
+        {
+          "cell": "lookup-query",
+          "reference": "threatintel.main.reputation"
+        }
+      ],
+      "narrative_cells": [
+        "lookup-story",
+        "join-story",
+        "scores-story",
+        "experiment-story"
+      ],
+      "result_cells": [
+        "reputation-table",
+        "fingerprint-finding",
+        "coverage-chart",
+        "scores-chart",
+        "queue-finding",
+        "checks-finding"
+      ],
+      "interpretation_cells": [
+        "queue-finding",
+        "join-story",
+        "scores-story"
+      ],
+      "review": {
+        "status": "approved",
+        "reviewer": "Codex /root/notebooks_earthquakes",
+        "reviewed_at": "2026-11-15T00:21:13.298821+00:00",
+        "notebook_sha256": "d2145830b59812f63454ad1cb7ecc45035dd26b9e50859dc0fda49b9d8fbd7e5",
+        "catalog_sha256": [
+          "41a535a4063dffc46f305c7de28c2dcabf3478dfea4cdc8c7a84f655d7f40dab",
+          "72aaf3f7bbf1fc220c2281fed6aa4639f1e4b3d1c326df89cc978c6b66aa3c58"
+        ],
+        "purpose": "Preserve unknown, explicit negative and positive-but-unscored outcomes while applying a local review rule.",
+        "finding": "Real native worker consumes six invented verdicts and one404 from supported loopback endpoint. Seven explicit CTAS calls each make exactly oneGET. Threshold70\u219290 changes queue5\u21923events and4\u21922distinct indicators; rawverdicts/nulls/unknowns/fingerprint stay fixed. No live threat feed, external indicator contact or probability/risk inference."
+      }
+    }
+  ]
+}

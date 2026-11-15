@@ -1,0 +1,47 @@
+{
+  "query": "SELECT * FROM duckdb_databases() WHERE database_name='threatintel'",
+  "captured_at": "2026-11-15T00:15:31.389555+00:00",
+  "columns": [
+    "database_name",
+    "database_oid",
+    "path",
+    "comment",
+    "tags",
+    "internal",
+    "type",
+    "readonly",
+    "encrypted",
+    "cipher",
+    "options"
+  ],
+  "rows": [
+    [
+      "threatintel",
+      22595,
+      null,
+      "Enrich cyber indicators against threat-intel reputation sources; classify offline",
+      {
+        "source": "vgi-threatintel",
+        "vgi.agent_test_tasks": "[{\"name\":\"type_an_ipv4_indicator\",\"prompt\":\"What indicator type does the string 8.8.8.8 classify as?\"},{\"name\":\"type_a_sha256_hash\",\"prompt\":\"Classify the indicator e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 into its indicator type.\"},{\"name\":\"private_ip_must_not_be_looked_up\",\"prompt\":\"You have two candidate IP addresses to enrich: 10.0.0.5 and 8.8.8.8. Which one must NOT be sent to an external reputation feed because it is a private or reserved address? Return only that IP address.\"},{\"name\":\"public_ip_is_safe_to_enrich\",\"prompt\":\"Of the IP addresses 10.0.0.5 and 8.8.8.8, which is a routable public address that is safe to look up against an external reputation feed? Return only that IP address.\"},{\"name\":\"private_ip_yields_zero_reputation_rows\",\"prompt\":\"How many reputation rows are returned for the private IP address 10.0.0.5 (which is triaged out before any lookup)?\"},{\"name\":\"count_supported_indicator_types\",\"prompt\":\"Using the worker's indicator_types reference view, how many distinct indicator (IoC) types does this worker recognize?\"},{\"name\":\"canonical_example_for_sha256\",\"prompt\":\"According to the indicator_types reference view, what is the canonical example value for the sha256 indicator type?\"}]",
+        "vgi.author": "Query.Farm",
+        "vgi.copyright": "Copyright 2026 Query Farm LLC - https://query.farm",
+        "vgi.doc_llm": "Defensive threat-intelligence worker for cyber indicators (IoCs). Offline scalars classify an indicator string as ipv4/ipv6/domain/url/md5/sha1/sha256 (indicator_type) and flag private/reserved IPs that should not be looked up (is_private_ip); the reputation table function enriches one indicator against a threat-intel reputation source, returning at most one verdict row with a malicious flag, score, categories, source, and last_seen. Use to triage and enrich IPs, domains, URLs, and file hashes in SQL during SOC / threat-hunting work (AUTHORIZED use only).",
+        "vgi.doc_md": "# Threat Intelligence\n\n**Enrich and classify cyber threat indicators \u2014 IPs, domains, URLs, and file hashes \u2014 against threat-intelligence reputation feeds directly in SQL.** This VGI worker turns DuckDB into a threat-hunting and indicator-of-compromise (IoC) triage engine: parse and type any indicator offline, screen out private/reserved IPs, then look up reputation verdicts (malicious flag, score, categories, source) from a pluggable feed \u2014 all without leaving your query.\n\nIt is built for SOC analysts, threat hunters, incident responders, and detection engineers who want to enrich and prioritize indicators in place rather than juggling separate enrichment scripts and spreadsheets. The worker is a **defensive** security tool intended for **authorized use only**, and it composes with sibling VGI workers such as `vgi-ioc`, `vgi-cve`, `vgi-yara`, and `vgi-sigma` to build a full SQL-native threat-intelligence stack.\n\nUnder the hood the worker is a standalone process that [DuckDB](https://duckdb.org) attaches over Apache Arrow via the [vgi-go SDK](https://github.com/Query-farm/vgi-go). It deliberately hard-codes no single feed: it speaks a simple **normalized reputation JSON** over `GET {base_url}?indicator=<value>`, so you point it at any adapter that maps a provider's response into that shape. Popular feeds plug in behind this one interface, including [AlienVault OTX](https://otx.alienvault.com/api), [abuse.ch URLhaus](https://urlhaus-api.abuse.ch/), [abuse.ch ThreatFox](https://threatfox.abuse.ch/api/), and [VirusTotal](https://docs.virustotal.com/) \u2014 each with its own API key, rate limits, and terms of use.\n\n## SQL functions\n\nTwo offline scalars triage indicators with **no network call**: `indicator_type` classifies a string as `ipv4`/`ipv6`/`domain`/`url`/`md5`/`sha1`/`sha256` (or NULL when unrecognized), and `is_private_ip` flags private/reserved IP addresses that should never be sent to an external feed. The `reputation` table function then enriches a single indicator against the configured source \u2014 selected with `base_url` plus optional `api_key` and `timeout_ms` \u2014 and returns at most one verdict row with the `malicious` flag, `score`, `categories`, `source`, and `last_seen`.\n\nA typical workflow first triages a whole column of indicators with the two offline scalars \u2014 `indicator_type` to classify each observable and `is_private_ip` to screen out internal hosts \u2014 and then enriches only the survivors with `reputation('1.2.3.4')`. Private/reserved IPs and unknown indicators return zero rows with no error, so enrichment stays cheap and safe. See the [vgi-threatintel source repository](https://github.com/Query-farm/vgi-threatintel) for adapter examples and the full normalized-feed contract.",
+        "vgi.keywords": "[\"threat intelligence\",\"threat intel\",\"indicators\",\"ioc\",\"ip\",\"domain\",\"url\",\"file hash\",\"reputation\",\"malicious\",\"enrichment\",\"classification\",\"soc\",\"threat hunting\",\"incident response\",\"cyber\",\"defensive security\"]",
+        "vgi.license": "MIT",
+        "vgi.subtitle": "Classify IPs, domains, URLs, and file hashes offline, then enrich them against threat-intel reputation feeds.",
+        "vgi.support_contact": "https://github.com/Query-farm/vgi-threatintel/issues",
+        "vgi.support_policy_url": "https://github.com/Query-farm/vgi-threatintel/blob/main/README.md",
+        "vgi.title": "Threat Intelligence"
+      },
+      false,
+      "vgi",
+      false,
+      false,
+      null,
+      {
+        "location": "github-auto://Query-farm/vgi-threatintel@v0.4.0"
+      }
+    ]
+  ]
+}

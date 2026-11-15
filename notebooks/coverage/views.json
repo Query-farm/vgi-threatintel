@@ -1,0 +1,45 @@
+{
+  "query": "SELECT * FROM duckdb_views() WHERE database_name='threatintel'",
+  "captured_at": "2026-11-15T00:15:31.388296+00:00",
+  "columns": [
+    "database_name",
+    "database_oid",
+    "schema_name",
+    "schema_oid",
+    "view_name",
+    "view_oid",
+    "comment",
+    "tags",
+    "internal",
+    "temporary",
+    "column_count",
+    "sql",
+    "is_bound"
+  ],
+  "rows": [
+    [
+      "threatintel",
+      22595,
+      "main",
+      22596,
+      "indicator_types",
+      22791,
+      "Reference table of the indicator (IoC) types this worker classifies \u2014 the exact closed set of values indicator_type() can return \u2014 each with a description and a canonical example. Browse it to learn the classifier's output space; VALUES-backed, so it scans offline with no network call.",
+      {
+        "domain": "security",
+        "topic": "indicator-enrichment",
+        "vgi.category": "Offline Triage",
+        "vgi.doc_llm": "Curated reference view enumerating every indicator (IoC) type the worker classifies \u2014 ipv4, ipv6, domain, url, md5, sha1, and sha256 \u2014 the exact closed set of values the indicator_type scalar can return. Each row carries the type name, a human-readable description, and a canonical example. VALUES-backed, so it browses offline with no network access; use it to discover what indicator_type can classify a string into before enriching.",
+        "vgi.doc_md": "A reference view listing every IoC type the worker recognizes (`ipv4`/`ipv6`/`domain`/`url`/`md5`/`sha1`/`sha256`), with a description and a canonical example of each. VALUES-backed and offline; it documents the exact output space of `indicator_type`.",
+        "vgi.example_queries": "[\n  {\n    \"description\": \"List every IoC type the worker recognizes, with a description and a canonical example of each.\",\n    \"sql\": \"SELECT indicator_type, description, example FROM threatintel.main.indicator_types ORDER BY indicator_type\"\n  },\n  {\n    \"description\": \"Look up the canonical example and human description for a single indicator type (sha256).\",\n    \"sql\": \"SELECT description, example FROM threatintel.main.indicator_types WHERE indicator_type = 'sha256'\"\n  }\n]",
+        "vgi.keywords": "[\"indicator types\",\"ioc types\",\"reference\",\"catalog\",\"ipv4\",\"ipv6\",\"domain\",\"url\",\"md5\",\"sha1\",\"sha256\",\"classify\",\"vocabulary\",\"threat intel\",\"soc\"]",
+        "vgi.title": "Supported Indicator Types"
+      },
+      false,
+      false,
+      null,
+      "CREATE VIEW indicator_types AS SELECT * FROM (SELECT * FROM (VALUES ('ipv4', 'IPv4 address in dotted-quad notation', '8.8.8.8'), ('ipv6', 'IPv6 address in colon-hex notation', '2001:4860:4860::8888'), ('domain', 'DNS domain name (hostname)', 'example.com'), ('url', 'Absolute HTTP or HTTPS URL', 'https://example.com/path'), ('md5', 'MD5 file hash (32 hexadecimal characters)', '44d88612fea8a8f36de82e1278abb02f'), ('sha1', 'SHA-1 file hash (40 hexadecimal characters)', 'da39a3ee5e6b4b0d3255bfef95601890afd80709'), ('sha256', 'SHA-256 file hash (64 hexadecimal characters)', 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855')) AS valueslist) AS t(indicator_type, description, example);",
+      false
+    ]
+  ]
+}

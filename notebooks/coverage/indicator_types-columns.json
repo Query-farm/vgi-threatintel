@@ -1,0 +1,38 @@
+{
+  "query": "DESCRIBE SELECT * FROM threatintel.main.indicator_types",
+  "captured_at": "2026-11-15T00:15:31.409269+00:00",
+  "columns": [
+    "column_name",
+    "column_type",
+    "null",
+    "key",
+    "default",
+    "extra"
+  ],
+  "rows": [
+    [
+      "indicator_type",
+      "VARCHAR",
+      "YES",
+      null,
+      null,
+      null
+    ],
+    [
+      "description",
+      "VARCHAR",
+      "YES",
+      null,
+      null,
+      null
+    ],
+    [
+      "example",
+      "VARCHAR",
+      "YES",
+      null,
+      null,
+      null
+    ]
+  ]
+}
